@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 250 249 246;
+    --surface: 255 255 255;
+    --surface-2: 243 241 236;
+    --ink: 22 25 29;
+    --ink-muted: 88 96 106;
+    --line: 228 224 216;
+    --line-strong: 205 199 188;
+    --accent: 4 120 87;
+    --accent-hover: 6 95 70;
+    --accent-ink: 4 120 87;
+    --on-accent: 255 255 255;
+    --accent-soft: 230 243 237;
+    --danger: 185 28 28;
+    --scrim: 10 13 16;
+    color-scheme: light;
+  }
+
+  body {
+    background-color: rgb(var(--bg));
+    color: rgb(var(--ink));
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+.panel {
+  background-color: rgb(var(--surface));
+  border: 1px solid rgb(var(--line));
+  border-radius: 0.75rem;
+}
+
+.field {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background-color: rgb(var(--surface));
+  color: rgb(var(--ink));
+  border: 1px solid rgb(var(--line));
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition-property: color, background-color, border-color;
+  transition-duration: 150ms;
+}
+
+.field:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  border-color: rgb(var(--accent));
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: rgb(var(--accent));
+  color: rgb(var(--on-accent));
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  transition-property: color, background-color, border-color;
+  transition-duration: 150ms;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.btn-primary:hover {
+  background-color: rgb(var(--accent-hover));
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: rgb(var(--surface));
+  color: rgb(var(--ink));
+  border: 1px solid rgb(var(--line));
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  transition-property: color, background-color, border-color;
+  transition-duration: 150ms;
+}
+
+.btn-secondary:hover {
+  background-color: rgb(var(--surface-2));
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
