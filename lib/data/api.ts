@@ -82,6 +82,13 @@ export async function getPropertyById(id: string): Promise<Property | null> {
   return doc.exists ? doc.data()! : null;
 }
 
+/** Used by imports to make the public URL slug the stable upsert key. */
+export async function getPropertyBySlug(slug: string): Promise<Property | null> {
+  const db = getDb();
+  const snap = await db.collection('properties').where('slug', '==', slug).limit(1).withConverter(propertyConverter).get();
+  return snap.empty ? null : snap.docs[0].data();
+}
+
 export async function isSlugAvailable(slug: string, exceptId?: string): Promise<boolean> {
   const db = getDb();
   const snap = await db.collection('properties').where('slug', '==', slug).limit(2).get();
@@ -245,4 +252,3 @@ export async function saveSettings(input: unknown): Promise<SiteSettings> {
   await db.collection('settings').doc('site').withConverter(settingsConverter).set({ ...record, id: 'site' });
   return record;
 }
-

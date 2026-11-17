@@ -138,6 +138,9 @@ export const corridorSchema = z.object({
   svgPathId: z.string().min(1),
   heroImage: imageRefSchema.nullable(),
   order: z.number().int().nonnegative(),
+  // Kept in step with the public catalogue: this is the top-level region used
+  // by the home-page category cards and region filters.
+  zone: z.enum(['north', 'east', 'south-east', 'south', 'west', 'central']).nullable().optional(),
 });
 
 export const officeHubSchema = z.object({
@@ -196,4 +199,3 @@ export const siteSettingsSchema = z.object({
   consentText: z.string(),
   privacyNote: z.string(),
 });
-

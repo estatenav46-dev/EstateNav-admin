@@ -4,18 +4,20 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useTransition } from 'react';
 import { Search, Plus, Star, Copy, Trash2, Edit, ExternalLink, Loader2 } from 'lucide-react';
-import type { Corridor, Property, PublishStatus } from '@/lib/data/types';
+import type { Corridor, Developer, Property, PublishStatus } from '@/lib/data/types';
 import { setStatusAction, setFeaturedAction, duplicatePropertyAction, deletePropertyAction } from '@/app/actions/properties';
 
-export function PropertiesTable({ properties, corridors }: { properties: Property[]; corridors: Corridor[] }) {
+export function PropertiesTable({ properties, corridors, developers }: { properties: Property[]; corridors: Corridor[]; developers: Developer[] }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [corridorFilter, setCorridorFilter] = useState('all');
+  const [developerFilter, setDeveloperFilter] = useState('all');
   const [isPending, startTransition] = useTransition();
 
   const filtered = properties.filter((p) => {
     if (statusFilter !== 'all' && p.status !== statusFilter) return false;
     if (corridorFilter !== 'all' && p.corridorId !== corridorFilter) return false;
+    if (developerFilter !== 'all' && p.developerId !== developerFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       return (
@@ -64,17 +66,17 @@ export function PropertiesTable({ properties, corridors }: { properties: Propert
   return (
     <div className="space-y-4">
       {/* Top Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+        <div className="flex flex-1 flex-wrap items-center gap-2">
           {/* Search */}
-          <div className="relative min-w-[240px]">
+          <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-muted" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by title, locality..."
-              className="field min-h-[38px] pl-9 text-xs"
+              className="field min-h-[42px] pl-9 text-xs"
             />
           </div>
 
@@ -82,7 +84,7 @@ export function PropertiesTable({ properties, corridors }: { properties: Propert
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="field min-h-[38px] text-xs"
+            className="field min-h-[42px] text-xs"
           >
             <option value="all">All statuses</option>
             <option value="published">Published</option>
@@ -90,11 +92,16 @@ export function PropertiesTable({ properties, corridors }: { properties: Propert
             <option value="archived">Archived</option>
           </select>
 
+          <select value={developerFilter} onChange={(e) => setDeveloperFilter(e.target.value)} className="field min-h-[42px] text-xs">
+            <option value="all">All partners</option>
+            {developers.map((developer) => <option key={developer.id} value={developer.id}>{developer.name}</option>)}
+          </select>
+
           {/* Corridor Filter */}
           <select
             value={corridorFilter}
             onChange={(e) => setCorridorFilter(e.target.value)}
-            className="field min-h-[38px] text-xs"
+            className="field min-h-[42px] text-xs"
           >
             <option value="all">All corridors</option>
             {corridors.map((c) => (
@@ -105,13 +112,13 @@ export function PropertiesTable({ properties, corridors }: { properties: Propert
           </select>
         </div>
 
-        <Link href="/properties/new" className="btn-primary min-h-[38px] px-4 text-xs flex items-center gap-1.5 shrink-0">
+        <Link href="/properties/new" className="btn-primary min-h-[42px] shrink-0 px-4 text-xs">
           <Plus className="h-4 w-4" /> Add Property
         </Link>
       </div>
 
       {/* Table Panel */}
-      <div className="panel overflow-hidden">
+      <div className="panel overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="border-b border-line bg-surface-2 text-2xs uppercase tracking-wider text-ink-muted">
@@ -249,4 +256,3 @@ export function PropertiesTable({ properties, corridors }: { properties: Propert
     </div>
   );
 }
-

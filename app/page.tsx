@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Clock,
   Sparkles,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -82,19 +83,24 @@ export default async function DashboardPage() {
 
   return (
     <AdminShell userEmail={session.email}>
-      <div className="space-y-8">
+      <div className="space-y-7 md:space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col gap-4 rounded-2xl border border-line bg-surface px-5 py-5 shadow-sm sm:px-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-ink">Dashboard Overview</h1>
-            <p className="text-sm text-ink-muted mt-0.5">
+            <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">EstateNav admin</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">Overview</h1>
+            <p className="mt-1 text-sm text-ink-muted">
               Live snapshot of EstateNav property listings, inquiries, and market metadata.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Link href="/properties#bulk-upload" className="btn-secondary w-full sm:w-auto">
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Import Excel</span>
+            </Link>
             <Link
               href="/properties/new"
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Post New Property</span>
@@ -103,14 +109,14 @@ export default async function DashboardPage() {
         </div>
 
         {/* Metric Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {statCards.map((card) => {
             const Icon = card.icon;
             return (
               <Link
                 key={card.label}
                 href={card.href}
-                className="panel p-5 hover:border-line-strong transition-all group relative overflow-hidden"
+                className="panel group relative overflow-hidden p-5 transition-all hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -122,7 +128,7 @@ export default async function DashboardPage() {
                       <span className="text-xs text-ink-muted">{card.total}</span>
                     </div>
                   </div>
-                  <div className={`p-3 rounded-xl ${card.bg} ${card.color}`}>
+                  <div className={`rounded-xl p-3 ${card.bg} ${card.color}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                 </div>
@@ -136,10 +142,10 @@ export default async function DashboardPage() {
         </div>
 
         {/* Quick Actions & Recent Activity Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Recent Inquiries Panel */}
-          <div className="lg:col-span-2 panel p-6">
-            <div className="flex items-center justify-between mb-5">
+          <div className="panel p-5 sm:p-6 lg:col-span-2">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-base font-semibold text-ink">Recent Customer Inquiries</h2>
                 <p className="text-xs text-ink-muted mt-0.5">
@@ -214,7 +220,7 @@ export default async function DashboardPage() {
 
           {/* Quick Shortcuts & Database Stats */}
           <div className="space-y-6">
-            <div className="panel p-6">
+            <div className="panel p-5 sm:p-6">
               <h2 className="text-base font-semibold text-ink mb-1">Quick Shortcuts</h2>
               <p className="text-xs text-ink-muted mb-4">Common administrative workflows</p>
 
@@ -226,6 +232,17 @@ export default async function DashboardPage() {
                   <div className="flex items-center gap-2.5">
                     <Building2 className="w-4 h-4 text-accent" />
                     <span>Post New Property Listing</span>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-ink-muted group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <Link
+                  href="/properties#bulk-upload"
+                  className="flex items-center justify-between p-3 rounded-lg bg-surface-2/60 hover:bg-surface-2 border border-line text-xs font-semibold text-ink group transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <span>Import Property Excel Sheet</span>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-ink-muted group-hover:translate-x-1 transition-transform" />
                 </Link>

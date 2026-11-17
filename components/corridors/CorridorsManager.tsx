@@ -29,6 +29,7 @@ export function CorridorsManager({ initialCorridors }: Props) {
       svgPathId: 'corridor-path',
       heroImage: null,
       order: corridors.length + 1,
+      zone: null,
     });
     setError(null);
   };
@@ -106,6 +107,7 @@ export function CorridorsManager({ initialCorridors }: Props) {
               )}
 
               <p className="text-xs text-ink-muted line-clamp-3 mb-3">{corr.description || 'No description provided.'}</p>
+              {corr.zone && <span className="inline-flex rounded-full bg-purple-500/10 px-2 py-1 text-2xs font-semibold capitalize text-purple-700">{corr.zone} region</span>}
             </div>
 
             <div className="pt-3 border-t border-line text-2xs text-ink-muted flex items-center justify-between">
@@ -173,6 +175,24 @@ export function CorridorsManager({ initialCorridors }: Props) {
                     className="field"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">Portal Region</label>
+                <select
+                  value={editing.zone || ''}
+                  onChange={(e) => setEditing({ ...editing, zone: (e.target.value || null) as Corridor['zone'] })}
+                  className="field"
+                >
+                  <option value="">Not assigned</option>
+                  <option value="north">North</option>
+                  <option value="east">East</option>
+                  <option value="south-east">South-East</option>
+                  <option value="south">South</option>
+                  <option value="west">West</option>
+                  <option value="central">Central</option>
+                </select>
+                <p className="mt-1 text-2xs text-ink-muted">Controls where this micro-market appears in the public home-page region categories.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

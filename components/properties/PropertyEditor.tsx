@@ -38,13 +38,13 @@ const formSchema = propertySchema.omit({
 type Draft = typeof formSchema._type;
 
 const TABS = [
-  { id: 'basics', label: '1. Basics', icon: Building2 },
-  { id: 'location', label: '2. Location', icon: MapPin },
+  { id: 'location', label: '1. Region, Area & Partner', icon: MapPin },
+  { id: 'basics', label: '2. Property basics', icon: Building2 },
   { id: 'configs', label: '3. Configurations & Price', icon: Layers },
   { id: 'possession', label: '4. Possession', icon: Calendar },
   { id: 'legal', label: '5. RERA & Approvals', icon: ShieldCheck },
   { id: 'features', label: '6. Amenities & Lenses', icon: Sparkles },
-  { id: 'media', label: '7. Media & Cloudinary', icon: ImageIcon },
+  { id: 'media', label: '7. Images & Documents', icon: ImageIcon },
   { id: 'commute', label: '8. Commute Radar', icon: Car },
   { id: 'seo', label: '9. SEO & Metadata', icon: Search },
 ] as const;
@@ -159,7 +159,7 @@ interface Props {
 export function PropertyEditor({ initial, developers, corridors, hubs }: Props) {
   const router = useRouter();
   const isNew = !initial;
-  const [activeTab, setActiveTab] = useState<string>('basics');
+  const [activeTab, setActiveTab] = useState<string>('location');
   const [saveStatus, setSaveStatus] = useState<PublishStatus>(initial?.status || 'published');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
@@ -488,28 +488,21 @@ export function PropertyEditor({ initial, developers, corridors, hubs }: Props) 
         {/* 2. LOCATION & DEVELOPER */}
         {activeTab === 'location' && (
           <div className="panel space-y-4 p-5 sm:p-6">
-            <h2 className="text-base font-semibold border-b border-line pb-2">Developer & Location</h2>
+            <div className="border-b border-line pb-3">
+              <h2 className="text-base font-semibold">Start with the listing location and owner</h2>
+              <p className="mt-1 text-2xs text-ink-muted">Choose the public portal region and micro-market first, then its locality and partner developer. This keeps website filters and partner catalogues in sync.</p>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-xs font-medium mb-1">Developer Partner *</label>
-                <select {...register('developerId')} className="field min-h-[40px] text-sm">
-                  {developers.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium mb-1">Corridor / Micro-Market *</label>
+                <label className="block text-xs font-medium mb-1">Region & Micro-Market *</label>
                 <select {...register('corridorId')} className="field min-h-[40px] text-sm">
                   {corridors.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {c.zone ? `${c.zone.replace(/\b\w/g, (letter) => letter.toUpperCase())} · ` : ''}{c.name}
                     </option>
                   ))}
                 </select>
+                {!corridors.length && <p className="mt-1 text-2xs text-danger">Create a corridor/region before adding a listing.</p>}
               </div>
 
               <div>
@@ -521,6 +514,18 @@ export function PropertyEditor({ initial, developers, corridors, hubs }: Props) 
                   className="field min-h-[40px] text-sm"
                 />
                 {errors.locality && <p className="text-2xs text-danger mt-1">{errors.locality.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1">Developer Partner *</label>
+                <select {...register('developerId')} className="field min-h-[40px] text-sm">
+                  {developers.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+                {!developers.length && <p className="mt-1 text-2xs text-danger">Create a partner developer before adding a listing.</p>}
               </div>
 
               <div>
@@ -1216,4 +1221,3 @@ export function PropertyEditor({ initial, developers, corridors, hubs }: Props) 
     </div>
   );
 }
-
