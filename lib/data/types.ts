@@ -46,3 +46,4 @@ export type EnquirySource = z.infer<typeof enquirySourceSchema>;
 export type EnquiryStatus = z.infer<typeof enquiryStatusSchema>;
 export type Enquiry = z.infer<typeof enquirySchema>;
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;
+export type BlogPost = import('zod').infer<typeof import('./schemas').blogPostSchema>;

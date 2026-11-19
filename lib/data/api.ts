@@ -1,5 +1,6 @@
 import { getDb } from './db';
 import {
+  blogConverter,
   corridorConverter,
   developerConverter,
   enquiryConverter,
@@ -8,13 +9,14 @@ import {
   settingsConverter,
 } from './converters';
 import {
+  blogPostSchema,
   corridorSchema,
   developerSchema,
   enquirySchema,
   propertySchema,
   siteSettingsSchema,
 } from './schemas';
-import type { Corridor, Developer, Enquiry, OfficeHub, Property, PublishStatus, SiteSettings } from './types';
+import type { BlogPost, Corridor, Developer, Enquiry, OfficeHub, Property, PublishStatus, SiteSettings } from './types';
 import { DEFAULT_SETTINGS } from './defaults';
 import { APPROVED_PARTNERS } from '../partners';
 
@@ -315,4 +317,45 @@ export async function saveSettings(input: unknown): Promise<SiteSettings> {
   const record = siteSettingsSchema.parse(input);
   await db.collection('settings').doc('site').withConverter(settingsConverter).set({ ...record, id: 'site' });
   return record;
+}
+
+// ---- Blog ----
+
+export type BlogDraft = Omit<BlogPost, 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy' | 'publishedAt'> & { publishedAt?: string | null };
+
+export async function listBlogs(): Promise<BlogPost[]> {
+  const snap = await getDb().collection('blogs').withConverter(blogConverter).get();
+  return snap.docs.map((d) => d.data()).sort((a, b) => (b.publishedAt ?? b.updatedAt).localeCompare(a.publishedAt ?? a.updatedAt));
+}
+
+export async function getBlogById(id: string): Promise<BlogPost | null> {
+  const doc = await getDb().collection('blogs').doc(id).withConverter(blogConverter).get();
+  return doc.exists ? doc.data()! : null;
+}
+
+export async function isBlogSlugAvailable(slug: string, exceptId?: string): Promise<boolean> {
+  const snap = await getDb().collection('blogs').where('slug', '==', slug).limit(2).get();
+  return snap.docs.every((d) => d.id === exceptId);
+}
+
+/** Saves a post. The first publish stamps publishedAt; it is kept on later edits unless set explicitly. */
+export async function saveBlog(draft: BlogDraft, actor: string): Promise<BlogPost> {
+  const ref = getDb().collection('blogs').doc(draft.id).withConverter(blogConverter);
+  const snap = await ref.get();
+  const existing = snap.exists ? snap.data()! : null;
+  const now = new Date().toISOString();
+  const record = blogPostSchema.parse({
+    ...draft,
+    createdAt: existing?.createdAt ?? now,
+    createdBy: existing?.createdBy ?? actor,
+    updatedAt: now,
+    updatedBy: actor,
+    publishedAt: draft.status === 'published' ? draft.publishedAt || existing?.publishedAt || now : existing?.publishedAt ?? draft.publishedAt ?? null,
+  });
+  await ref.set(record);
+  return record;
+}
+
+export async function deleteBlog(id: string): Promise<void> {
+  await getDb().collection('blogs').doc(id).delete();
 }

@@ -14,6 +14,7 @@ import {
   Shield,
   ChevronRight,
   Layers3,
+  Newspaper,
 } from 'lucide-react';
 import { logoutAction } from '@/app/actions/auth';
 
@@ -22,11 +23,12 @@ const NAV_ITEMS = [
   { href: '/properties', label: 'Properties', icon: Building2, group: 'Catalogue' },
   { href: '/developers', label: 'Partners', icon: Users, group: 'Catalogue' },
   { href: '/corridors', label: 'Regions & areas', icon: Map, group: 'Catalogue' },
+  { href: '/blogs', label: 'Blog', icon: Newspaper, group: 'Content' },
   { href: '/enquiries', label: 'Enquiries', icon: Inbox, group: 'Operations' },
   { href: '/settings', label: 'Settings', icon: Settings, group: 'Operations' },
 ];
 
-const NAV_GROUPS = ['Workspace', 'Catalogue', 'Operations'] as const;
+const NAV_GROUPS = ['Workspace', 'Catalogue', 'Content', 'Operations'] as const;
 
 export function AdminShell({ children, userEmail }: { children: React.ReactNode; userEmail: string }) {
   const pathname = usePathname();

@@ -291,3 +291,32 @@ export const siteSettingsSchema = z.object({
   consentText: z.string(),
   privacyNote: z.string(),
 });
+
+// ---- Blog (kept identical in EstateNav/lib/data/schemas.ts and EstateNav-admin/lib/data/schemas.ts) ----
+// Posts are written in the admin and read by the website. `body` is light Markdown:
+// ## / ### headings, paragraphs, - and 1. lists, > quotes, **bold**, *italic*, [links](url), ![images](url).
+export const blogStatusSchema = z.enum(['draft', 'published']);
+
+export const blogPostSchema = z.object({
+  id: z.string().min(1),
+  slug,
+  status: blogStatusSchema,
+  title: z.string().trim().min(3, 'Add a title').max(140),
+  /** One or two sentences for cards, the list page and search results. */
+  excerpt: z.string().trim().max(320).default(''),
+  body: z.string().default(''),
+  cover: imageRefSchema.nullable().default(null),
+  category: z.string().trim().min(1).max(60).default('Buying guides'),
+  tags: z.array(z.string().trim().min(1).max(40)).max(12).default([]),
+  author: z.object({ name: z.string().trim().min(1).max(80), role: z.string().trim().max(80).default('') }).default({ name: 'SV Praveen', role: 'K-RERA registered agent' }),
+  readMinutes: z.number().int().positive().max(120),
+  featured: z.boolean().default(false),
+  /** Listings mentioned in the post, shown as cards under the article. */
+  relatedPropertyIds: z.array(z.string()).max(6).default([]),
+  seo: z.object({ title: z.string().max(90).default(''), description: z.string().max(200).default('') }).default({}),
+  publishedAt: z.string().nullable().default(null),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  createdBy: z.string(),
+  updatedBy: z.string(),
+});
