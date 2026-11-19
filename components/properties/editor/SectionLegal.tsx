@@ -25,7 +25,7 @@ export function SectionLegal() {
   // Possession label follows the date/status until someone types their own.
   useEffect(() => {
     const current = getValues('possession.label');
-    const next = status === 'ready' ? 'Ready to move' : date ? monthLabel(date) : status === 'pre-launch' ? 'Pre-launch' : '';
+    const next = status === 'ready' ? 'Ready to move' : date ? monthLabel(date) : status === 'pre-launch' ? 'Pre-launch' : 'Under construction';
     if (next && (!current || current === autoLabel.current)) {
       setValue('possession.label', next, { shouldDirty: true, shouldValidate: Boolean(current) });
       autoLabel.current = next;
