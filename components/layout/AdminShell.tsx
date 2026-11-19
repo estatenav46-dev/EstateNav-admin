@@ -40,20 +40,20 @@ export function AdminShell({ children, userEmail }: { children: React.ReactNode;
   return (
     <div className="flex min-h-screen bg-bg text-ink text-sm">
       {/* Sidebar (Desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-surface shadow-[8px_0_24px_rgb(15_23_42/0.025)] md:flex">
+      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-line bg-surface shadow-[8px_0_24px_rgb(15_23_42/0.025)] md:flex">
         {/* Logo / Brand */}
-        <div className="flex h-[72px] items-center border-b border-line px-5">
+        <div className="flex h-14 items-center border-b border-line px-4">
           <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow-sm"><Layers3 className="h-4 w-4" /></span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white shadow-sm"><Layers3 className="h-4 w-4" /></span>
             <span>
-              <span className="block font-serif text-xl font-bold leading-none tracking-tight text-ink">Estate<span className="text-accent-ink">Nav</span></span>
+              <span className="block text-lg font-bold leading-none tracking-tight text-ink">Estate<span className="text-accent-ink">Nav</span></span>
               <span className="mt-1 block font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted">Control centre</span>
             </span>
           </Link>
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+        <nav className="flex-1 space-y-4 overflow-y-auto px-2.5 py-4">
           {NAV_GROUPS.map((group) => (
             <div key={group}>
               <p className="px-3 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted/80">{group}</p>
@@ -62,7 +62,7 @@ export function AdminShell({ children, userEmail }: { children: React.ReactNode;
                   const Icon = item.icon;
                   const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
                   return (
-                    <Link key={item.href} href={item.href} className={`group flex min-h-[44px] items-center gap-3 rounded-xl px-3 text-xs font-medium transition-all ${active ? 'bg-accent text-white shadow-sm' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'}`}>
+                    <Link key={item.href} href={item.href} className={`group flex min-h-[36px] items-center gap-2.5 rounded-lg px-2.5 text-xs font-medium transition-all ${active ? 'bg-accent text-white shadow-sm' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'}`}>
                       <Icon className="h-4 w-4 shrink-0" />
                       <span className="flex-1">{item.label}</span>
                       {active && <ChevronRight className="h-3.5 w-3.5" />}
@@ -99,7 +99,7 @@ export function AdminShell({ children, userEmail }: { children: React.ReactNode;
       {/* Main Body */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header Bar */}
-        <header className="sticky top-0 z-30 flex min-h-[64px] flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/95 px-4 py-3 backdrop-blur sm:px-6 md:h-[72px] md:flex-nowrap md:py-0">
+        <header className="sticky top-0 z-30 flex min-h-[56px] flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur sm:px-6 md:h-14 md:flex-nowrap md:py-0">
           {/* Mobile nav */}
           <nav className="no-scrollbar order-2 flex w-full gap-1 overflow-x-auto rounded-xl border border-line bg-surface-2/50 p-1 md:order-1 md:hidden">
             {NAV_ITEMS.map((item) => (
@@ -134,7 +134,7 @@ export function AdminShell({ children, userEmail }: { children: React.ReactNode;
         </header>
 
         {/* Page Content */}
-        <main className="min-w-0 flex-1 p-4 sm:p-6 md:p-8"><div className="admin-content">{children}</div></main>
+        <main className="min-w-0 flex-1 p-4 sm:p-5 md:p-6"><div className="admin-content">{children}</div></main>
       </div>
     </div>
   );

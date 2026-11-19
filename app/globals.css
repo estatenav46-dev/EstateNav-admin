@@ -4,12 +4,12 @@
 
 @layer base {
   :root {
-    --bg: 250 249 246;
+    --bg: 248 247 244;
     --surface: 255 255 255;
     --surface-2: 243 241 236;
     --ink: 22 25 29;
-    --ink-muted: 88 96 106;
-    --line: 228 224 216;
+    --ink-muted: 92 99 108;
+    --line: 229 226 219;
     --line-strong: 205 199 188;
     --accent: 4 120 87;
     --accent-hover: 6 95 70;
@@ -19,6 +19,10 @@
     --danger: 185 28 28;
     --scrim: 10 13 16;
     color-scheme: light;
+  }
+
+  html {
+    font-size: 15px;
   }
 
   body {
@@ -38,119 +42,123 @@
   }
 }
 
-.panel {
-  background-color: rgb(var(--surface));
-  border: 1px solid rgb(var(--line));
-  border-radius: 1rem;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.025);
-}
+/* Component classes live in the components layer so Tailwind utilities (text-xs, w-auto,
+   pl-9, min-h-…) can still adjust them where they are used. */
+@layer components {
+  .panel {
+    background-color: rgb(var(--surface));
+    border: 1px solid rgb(var(--line));
+    border-radius: 0.875rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.03);
+  }
 
-.field {
-  width: 100%;
-  min-height: 2.625rem;
-  padding: 0.55rem 0.75rem;
-  background-color: rgb(var(--surface));
-  color: rgb(var(--ink));
-  border: 1px solid rgb(var(--line));
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  transition-property: color, background-color, border-color, box-shadow;
-  transition-duration: 150ms;
-}
+  .field {
+    width: 100%;
+    min-height: 2.25rem;
+    padding: 0.4rem 0.7rem;
+    background-color: rgb(var(--surface));
+    color: rgb(var(--ink));
+    border: 1px solid rgb(var(--line));
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    transition-property: color, background-color, border-color, box-shadow;
+    transition-duration: 150ms;
+  }
 
-.field:focus {
-  border-color: rgb(var(--accent));
-  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.12);
-  outline: none;
-}
+  .field::placeholder {
+    color: rgb(var(--ink-muted) / 0.7);
+  }
 
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 2.625rem;
-  padding: 0.55rem 1rem;
-  background-color: rgb(var(--accent));
-  color: rgb(var(--on-accent));
-  font-weight: 600;
-  font-size: 0.875rem;
-  border-radius: 0.625rem;
-  transition-property: color, background-color, border-color, box-shadow, transform;
-  transition-duration: 150ms;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.12);
-}
+  .field:focus {
+    border-color: rgb(var(--accent));
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.12);
+    outline: none;
+  }
 
-.btn-primary:hover {
-  background-color: rgb(var(--accent-hover));
-  box-shadow: 0 4px 10px rgb(var(--accent) / 0.18);
-  transform: translateY(-1px);
-}
+  .field:disabled {
+    background-color: rgb(var(--surface-2));
+  }
 
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+  select.field {
+    padding-right: 2rem;
+  }
 
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 2.625rem;
-  padding: 0.55rem 1rem;
-  background-color: rgb(var(--surface));
-  color: rgb(var(--ink));
-  border: 1px solid rgb(var(--line));
-  font-weight: 600;
-  font-size: 0.875rem;
-  border-radius: 0.625rem;
-  transition-property: color, background-color, border-color, box-shadow;
-  transition-duration: 150ms;
-}
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.25rem;
+    padding: 0.4rem 0.85rem;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    border-radius: 0.5rem;
+    white-space: nowrap;
+    transition-property: color, background-color, border-color, box-shadow;
+    transition-duration: 150ms;
+  }
 
-.btn-secondary:hover {
-  background-color: rgb(var(--surface-2));
-  border-color: rgb(var(--line-strong));
-}
+  .btn-primary {
+    background-color: rgb(var(--accent));
+    color: rgb(var(--on-accent));
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  }
 
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+  .btn-primary:hover {
+    background-color: rgb(var(--accent-hover));
+  }
 
-.btn-primary:focus-visible,
-.btn-secondary:focus-visible,
-.btn-ghost:focus-visible {
-  outline: 3px solid rgb(var(--accent) / 0.2);
-  outline-offset: 2px;
-}
+  .btn-secondary {
+    background-color: rgb(var(--surface));
+    color: rgb(var(--ink));
+    border: 1px solid rgb(var(--line));
+  }
 
-.btn-ghost {
-  display: inline-flex;
-  min-height: 2.5rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 0.625rem;
-  font-weight: 600;
-  transition: background-color 150ms ease, color 150ms ease;
-}
+  .btn-secondary:hover {
+    background-color: rgb(var(--surface-2));
+    border-color: rgb(var(--line-strong));
+  }
 
-.btn-ghost:hover {
-  background-color: rgb(var(--surface-2));
-}
+  .btn-ghost:hover {
+    background-color: rgb(var(--surface-2));
+  }
 
-.admin-content {
-  width: 100%;
-  max-width: 90rem;
-  margin-inline: auto;
+  .btn-primary:disabled,
+  .btn-secondary:disabled,
+  .btn-ghost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible,
+  .btn-ghost:focus-visible {
+    outline: 3px solid rgb(var(--accent) / 0.2);
+    outline-offset: 2px;
+  }
+
+  .admin-content {
+    width: 100%;
+    max-width: 88rem;
+    margin-inline: auto;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (max-width: 767px) {
   .btn-primary,
   .btn-secondary {
-    min-height: 2.75rem;
+    min-height: 2.5rem;
   }
 }

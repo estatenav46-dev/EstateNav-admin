@@ -104,7 +104,7 @@ export function newConfiguration(label: string, bhk: number | null): Configurati
 export type SectionId = 'location' | 'basics' | 'facts' | 'units' | 'legal' | 'amenities' | 'connectivity' | 'media' | 'documents' | 'extras' | 'seo';
 
 export const SECTIONS: { id: SectionId; label: string; description: string; icon: typeof MapPin }[] = [
-  { id: 'location', label: 'Partner & location', description: 'Who builds it and where it is in Bengaluru.', icon: MapPin },
+  { id: 'location', label: 'Region, area & partner', description: 'Pick the Bengaluru region and area first, then the locality, map pin and partner.', icon: MapPin },
   { id: 'basics', label: 'Basics', description: 'Name, web address, type and the story of the project.', icon: Building2 },
   { id: 'facts', label: 'Project facts', description: 'Land, towers, units and open space, as stated by the developer.', icon: Ruler },
   { id: 'units', label: 'Unit types & pricing', description: 'Each configuration with sizes, prices and its floor plan.', icon: Layers },

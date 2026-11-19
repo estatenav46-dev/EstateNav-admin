@@ -21,9 +21,9 @@ export const ZONE_OPTIONS: { id: Zone; label: string; examples: string }[] = [
 
 export const zoneLabel = (zone: Corridor['zone']) => ZONE_OPTIONS.find((z) => z.id === zone)?.label ?? 'No region';
 
-export function blankCorridor(order: number, name = ''): Corridor {
+export function blankCorridor(order: number, name = '', zone: Corridor['zone'] = null): Corridor {
   const slug = slugify(name, 60);
-  return { id: slug, name, slug, description: '', svgPathId: slug || 'corridor', heroImage: null, order, zone: null };
+  return { id: slug, name, slug, description: '', svgPathId: slug || 'corridor', heroImage: null, order, zone };
 }
 
 type Props = {

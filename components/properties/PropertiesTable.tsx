@@ -62,43 +62,49 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1.5">
-        {(['all', 'published', 'draft', 'archived'] as const).map((s) => (
-          <button key={s} type="button" onClick={() => set({ status: s })} className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${filters.status === s ? 'bg-accent text-white' : 'border border-line bg-surface text-ink-muted hover:text-ink'}`}>
-            {s === 'all' ? 'All' : s} <span className="ml-1 font-mono opacity-80">{counts[s]}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3 sm:flex-row sm:flex-wrap sm:items-center sm:p-4">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-          <input type="search" value={filters.q} onChange={(e) => set({ q: e.target.value })} placeholder="Search name, partner, locality…" className="field min-h-[40px] pl-9 text-xs" />
+      <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-2.5 lg:flex-row lg:items-center">
+        <div className="flex shrink-0 gap-1 rounded-lg bg-surface-2 p-0.5">
+          {(['all', 'published', 'draft', 'archived'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => set({ status: s })}
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold capitalize transition-colors ${filters.status === s ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'}`}
+            >
+              {s === 'all' ? 'All' : s} <span className="ml-0.5 font-mono text-2xs opacity-70">{counts[s]}</span>
+            </button>
+          ))}
         </div>
-        <select value={filters.developer} onChange={(e) => set({ developer: e.target.value })} className="field min-h-[40px] w-auto text-xs">
-          <option value="all">All partners</option>
-          {[...developers].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-        <select value={filters.corridor} onChange={(e) => set({ corridor: e.target.value })} className="field min-h-[40px] w-auto text-xs">
-          <option value="all">All areas</option>
-          {corridors.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select value={filters.segment} onChange={(e) => set({ segment: e.target.value })} className="field min-h-[40px] w-auto text-xs">
-          <option value="all">All segments</option>
-          <option value="residential">Residential</option>
-          <option value="plot">Plots</option>
-          <option value="commercial">Commercial</option>
-        </select>
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
+          <input type="search" value={filters.q} onChange={(e) => set({ q: e.target.value })} placeholder="Search name, partner, locality…" className="field pl-8 text-xs" />
+        </div>
+        <div className="grid grid-cols-3 gap-2 lg:flex">
+          <select value={filters.developer} onChange={(e) => set({ developer: e.target.value })} className="field text-xs lg:w-40" aria-label="Partner">
+            <option value="all">All partners</option>
+            {[...developers].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+          <select value={filters.corridor} onChange={(e) => set({ corridor: e.target.value })} className="field text-xs lg:w-40" aria-label="Area">
+            <option value="all">All areas</option>
+            {corridors.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <select value={filters.segment} onChange={(e) => set({ segment: e.target.value })} className="field text-xs lg:w-36" aria-label="Segment">
+            <option value="all">All segments</option>
+            <option value="residential">Residential</option>
+            <option value="plot">Plots</option>
+            <option value="commercial">Commercial</option>
+          </select>
+        </div>
         {active && (
-          <button type="button" onClick={() => setFilters({ ...initialFilters, status: filters.status, developer: 'all', corridor: 'all', segment: 'all', q: '' })} className="btn-ghost px-2 text-xs text-ink-muted">
+          <button type="button" onClick={() => setFilters({ ...initialFilters, status: filters.status, developer: 'all', corridor: 'all', segment: 'all', q: '' })} className="btn-ghost shrink-0 px-2 text-xs text-ink-muted">
             <X className="h-3.5 w-3.5" /> Clear
           </button>
         )}
@@ -116,14 +122,14 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
 
       <div className="panel overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] text-left text-sm">
+          <table className="w-full min-w-[880px] text-left text-xs">
             <thead className="border-b border-line bg-surface-2 text-2xs uppercase tracking-wider text-ink-muted">
               <tr>
-                <th className="px-4 py-3 font-semibold">Property</th>
-                <th className="px-4 py-3 font-semibold">Partner · Area</th>
-                <th className="px-4 py-3 font-semibold">Price</th>
-                <th className="px-4 py-3 font-semibold">Content</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-3 py-2.5 font-semibold">Property</th>
+                <th className="px-3 py-2.5 font-semibold">Partner · Area</th>
+                <th className="px-3 py-2.5 font-semibold">Price</th>
+                <th className="px-3 py-2.5 font-semibold">Content</th>
+                <th className="px-3 py-2.5 font-semibold">Status</th>
                 <th className="px-4 py-3 text-center font-semibold">Featured</th>
                 <th className="px-4 py-3 text-right font-semibold">Actions</th>
               </tr>
@@ -140,9 +146,9 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                   const plans = p.configurations.filter((c) => c.floorPlanImageId).length;
                   return (
                     <tr key={p.id} className="transition-colors hover:bg-surface-2/40">
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2.5">
                         <div className="flex items-center gap-3">
-                          <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-2">
+                          <div className="relative h-10 w-14 shrink-0 overflow-hidden rounded-md bg-surface-2">
                             {p.media.gallery.length ? <Image src={p.media.cover.url} alt="" fill sizes="64px" className="object-cover" /> : <div className="flex h-full w-full items-center justify-center text-[10px] text-ink-muted">No photo</div>}
                           </div>
                           <div className="min-w-0">
@@ -155,23 +161,23 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs">
+                      <td className="px-3 py-2.5 text-xs">
                         <span className="block font-medium text-ink">{p.developerName}</span>
                         <span className="text-ink-muted">{p.corridorName}</span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs font-medium text-ink">
+                      <td className="px-3 py-2.5 font-mono text-xs font-medium text-ink">
                         {formatPrice(p.priceMin)}
                         {p.priceMax ? ` – ${formatPrice(p.priceMax)}` : '+'}
                         {p.priceOnRequest && <span className="mt-0.5 block font-sans text-2xs font-normal text-amber-700">Shown as “on request”</span>}
                       </td>
-                      <td className="px-4 py-3 text-2xs text-ink-muted">
+                      <td className="px-3 py-2.5 text-2xs text-ink-muted">
                         <span className="flex items-center gap-3">
                           <span className="inline-flex items-center gap-1" title="Photos"><Images className="h-3.5 w-3.5" /> {p.media.gallery.length}</span>
                           <span className="inline-flex items-center gap-1" title="Unit types (with floor plan)"><Layers className="h-3.5 w-3.5" /> {p.configurations.length}{plans ? `/${plans}` : ''}</span>
                           <span className="inline-flex items-center gap-1" title="Documents"><FileText className="h-3.5 w-3.5" /> {p.documents.length}</span>
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs">
+                      <td className="px-3 py-2.5 text-xs">
                         <select
                           value={p.status}
                           disabled={isPending}
@@ -183,12 +189,12 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                           <option value="archived">Archived</option>
                         </select>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-3 py-2.5 text-center">
                         <button type="button" disabled={isPending} onClick={() => run(() => setFeaturedAction(p.id, !p.featured))} className={`rounded-lg p-1.5 transition-colors ${p.featured ? 'text-amber-500 hover:bg-amber-500/10' : 'text-ink-muted hover:bg-surface-2'}`} title={p.featured ? 'Remove from home page' : 'Feature on home page'}>
                           <Star className={`h-4 w-4 ${p.featured ? 'fill-current' : ''}`} />
                         </button>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-3 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Link href={`/properties/${p.id}`} className="rounded p-1.5 text-ink-muted hover:bg-surface-2 hover:text-ink" title="Edit listing">
                             <Edit className="h-4 w-4" />

@@ -85,7 +85,7 @@ export default async function DashboardPage() {
     <AdminShell userEmail={session.email}>
       <div className="space-y-7 md:space-y-8">
         {/* Header */}
-        <div className="flex flex-col gap-4 rounded-2xl border border-line bg-surface px-5 py-5 shadow-sm sm:px-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface px-4 py-4 shadow-sm sm:px-5 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">EstateNav admin</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">Overview</h1>

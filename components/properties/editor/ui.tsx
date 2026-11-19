@@ -13,10 +13,10 @@ export function SectionCard({ id, children, aside }: { id: SectionId; children: 
   const section = SECTIONS[index];
   const Icon = section.icon;
   return (
-    <section id={`section-${id}`} aria-labelledby={`section-${id}-title`} className="panel scroll-mt-24 p-5 sm:p-6">
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-line pb-4">
+    <section id={`section-${id}`} aria-labelledby={`section-${id}-title`} className="panel scroll-mt-20 p-4 sm:p-5">
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-line pb-3">
         <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-ink">
             <Icon className="h-4 w-4" />
           </span>
           <div>
@@ -29,7 +29,7 @@ export function SectionCard({ id, children, aside }: { id: SectionId; children: 
         </div>
         {aside}
       </header>
-      <div className="space-y-6">{children}</div>
+      <div className="space-y-5">{children}</div>
     </section>
   );
 }

@@ -244,7 +244,7 @@ export function PropertyEditor({ initial, developers, corridors, hubs }: Props) 
 
         <div className="grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)] xl:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
-            <div className="sticky top-[88px] max-h-[calc(100vh-100px)] overflow-y-auto pb-4">
+            <div className="sticky top-[72px] max-h-[calc(100vh-84px)] overflow-y-auto pb-4">
               <EditorNav control={control} errors={formState.errors} />
             </div>
           </aside>
