@@ -8,10 +8,11 @@ import { AlertCircle, Copy, Edit, ExternalLink, FileText, Images, Layers, Plus, 
 import type { Corridor, Developer, Property, PublishStatus } from '@/lib/data/types';
 import { setStatusAction, setFeaturedAction, duplicatePropertyAction, deletePropertyAction } from '@/app/actions/properties';
 import { PROPERTY_TYPE_LABEL } from '@/lib/listingMeta';
+import { ZONE_OPTIONS, zoneLabel } from '@/components/corridors/CorridorForm';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://estatenav.in').replace(/\/$/, '');
 
-export type TableFilters = { status: string; developer: string; corridor: string; segment: string; q: string };
+export type TableFilters = { status: string; region: string; developer: string; corridor: string; segment: string; q: string };
 
 const formatPrice = (p: number) => {
   if (p >= 10000000) return `₹${(p / 10000000).toFixed(2).replace(/\.?0+$/, '')} Cr`;
@@ -41,9 +42,12 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
     archived: properties.filter((p) => p.status === 'archived').length,
   }), [properties]);
 
+  const zoneOf = useMemo(() => new Map(corridors.map((c) => [c.id, c.zone ?? null])), [corridors]);
+  const areaOptions = filters.region === 'all' ? corridors : corridors.filter((c) => c.zone === filters.region);
   const filtered = properties.filter((p) => {
     if (filters.status !== 'all' && p.status !== filters.status) return false;
     if (filters.corridor !== 'all' && p.corridorId !== filters.corridor) return false;
+    if (filters.region !== 'all' && zoneOf.get(p.corridorId) !== filters.region) return false;
     if (filters.developer !== 'all' && p.developerId !== filters.developer) return false;
     if (filters.segment !== 'all' && p.segment !== filters.segment) return false;
     const q = filters.q.trim().toLowerCase();
@@ -58,7 +62,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
       router.refresh();
     });
 
-  const active = filters.developer !== 'all' || filters.corridor !== 'all' || filters.segment !== 'all' || filters.q;
+  const active = filters.region !== 'all' || filters.developer !== 'all' || filters.corridor !== 'all' || filters.segment !== 'all' || filters.q;
 
   return (
     <div className="space-y-4">
@@ -79,7 +83,15 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
           <input type="search" value={filters.q} onChange={(e) => set({ q: e.target.value })} placeholder="Search name, partner, locality…" className="field pl-8 text-xs" />
         </div>
-        <div className="grid grid-cols-3 gap-2 lg:flex">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex">
+          <select value={filters.region} onChange={(e) => set({ region: e.target.value, corridor: 'all' })} className="field text-xs lg:w-40" aria-label="Region">
+            <option value="all">All regions</option>
+            {ZONE_OPTIONS.map((z) => (
+              <option key={z.id} value={z.id}>
+                {z.label}
+              </option>
+            ))}
+          </select>
           <select value={filters.developer} onChange={(e) => set({ developer: e.target.value })} className="field text-xs lg:w-40" aria-label="Partner">
             <option value="all">All partners</option>
             {[...developers].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
@@ -90,7 +102,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
           </select>
           <select value={filters.corridor} onChange={(e) => set({ corridor: e.target.value })} className="field text-xs lg:w-40" aria-label="Area">
             <option value="all">All areas</option>
-            {corridors.map((c) => (
+            {areaOptions.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
@@ -104,7 +116,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
           </select>
         </div>
         {active && (
-          <button type="button" onClick={() => setFilters({ ...initialFilters, status: filters.status, developer: 'all', corridor: 'all', segment: 'all', q: '' })} className="btn-ghost shrink-0 px-2 text-xs text-ink-muted">
+          <button type="button" onClick={() => setFilters({ ...initialFilters, status: filters.status, region: 'all', developer: 'all', corridor: 'all', segment: 'all', q: '' })} className="btn-ghost shrink-0 px-2 text-xs text-ink-muted">
             <X className="h-3.5 w-3.5" /> Clear
           </button>
         )}
@@ -163,7 +175,10 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                       </td>
                       <td className="px-3 py-2.5 text-xs">
                         <span className="block font-medium text-ink">{p.developerName}</span>
-                        <span className="text-ink-muted">{p.corridorName}</span>
+                        <span className="text-ink-muted">
+                          {p.corridorName}
+                          {zoneOf.get(p.corridorId) ? ` · ${zoneLabel(zoneOf.get(p.corridorId) ?? null).replace(' Bengaluru', '')}` : ''}
+                        </span>
                       </td>
                       <td className="px-3 py-2.5 font-mono text-xs font-medium text-ink">
                         {formatPrice(p.priceMin)}

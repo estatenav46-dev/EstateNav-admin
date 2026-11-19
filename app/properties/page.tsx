@@ -19,6 +19,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: R
   const [properties, corridors, developers] = await Promise.all([listProperties({ status: 'all' }), listCorridors(), listDevelopers()]);
   const initialFilters: TableFilters = {
     status: pick(searchParams.status, ['published', 'draft', 'archived']),
+    region: pick(searchParams.region, ['north', 'east', 'south-east', 'south', 'west', 'central']),
     developer: pick(searchParams.developer),
     corridor: pick(searchParams.corridor),
     segment: pick(searchParams.segment, ['residential', 'plot', 'commercial']),
