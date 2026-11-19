@@ -68,12 +68,11 @@ export function EnquiriesInbox({ initialEnquiries, initialStatus = 'all' }: Prop
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div>
-          <h2 className="text-xl font-bold text-ink">Customer Leads & Advisory Inquiries</h2>
-          <p className="text-xs text-ink-muted mt-0.5">
-            Real-time inquiries received from the EstateNav website with consent timestamps and attribution.
-          </p>
+          <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Operations</p>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Enquiries</h1>
+          <p className="mt-0.5 text-sm text-ink-muted">Leads from the website, with the consent they gave and where they came from.</p>
         </div>
 
         {/* Search */}
