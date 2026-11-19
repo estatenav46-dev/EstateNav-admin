@@ -1,20 +1,29 @@
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { requireAuth } from '@/lib/auth/session';
 import { listProperties, listCorridors, listDevelopers } from '@/lib/data/api';
 import { AdminShell } from '@/components/layout/AdminShell';
-import { PropertiesTable } from '@/components/properties/PropertiesTable';
+import { PropertiesTable, type TableFilters } from '@/components/properties/PropertiesTable';
 import { BulkPropertyUpload } from '@/components/properties/BulkPropertyUpload';
-import { Plus } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PropertiesPage() {
+const pick = (value: string | string[] | undefined, allowed?: string[]) => {
+  const v = Array.isArray(value) ? value[0] : value;
+  if (!v) return 'all';
+  return !allowed || allowed.includes(v) ? v : 'all';
+};
+
+export default async function PropertiesPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const session = await requireAuth();
-  const [properties, corridors, developers] = await Promise.all([
-    listProperties({ status: 'all' }),
-    listCorridors(),
-    listDevelopers(),
-  ]);
+  const [properties, corridors, developers] = await Promise.all([listProperties({ status: 'all' }), listCorridors(), listDevelopers()]);
+  const initialFilters: TableFilters = {
+    status: pick(searchParams.status, ['published', 'draft', 'archived']),
+    developer: pick(searchParams.developer),
+    corridor: pick(searchParams.corridor),
+    segment: pick(searchParams.segment, ['residential', 'plot', 'commercial']),
+    q: typeof searchParams.q === 'string' ? searchParams.q : '',
+  };
 
   return (
     <AdminShell userEmail={session.email}>
@@ -22,19 +31,17 @@ export default async function PropertiesPage() {
         <div className="flex flex-col gap-4 rounded-2xl border border-line bg-surface px-5 py-5 shadow-sm sm:px-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Catalogue</p>
-            <h1 className="text-2xl font-bold tracking-tight text-ink">Property Listings</h1>
-            <p className="text-sm text-ink-muted mt-0.5">
-              Manage Hyderabad project listings, pricing, configurations, and verification facts.
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-ink">Property listings</h1>
+            <p className="mt-0.5 text-sm text-ink-muted">Bengaluru projects: pricing, unit types, floor plans, documents and verification details.</p>
           </div>
           <Link href="/properties/new" className="btn-primary w-full sm:w-auto">
-            <Plus className="w-4 h-4" />
-            <span>Post New Property</span>
+            <Plus className="h-4 w-4" />
+            <span>Post new property</span>
           </Link>
         </div>
 
+        <PropertiesTable properties={properties} corridors={corridors} developers={developers} initialFilters={initialFilters} />
         <BulkPropertyUpload developers={developers} />
-        <PropertiesTable properties={properties} corridors={corridors} developers={developers} />
       </div>
     </AdminShell>
   );

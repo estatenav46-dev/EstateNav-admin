@@ -62,7 +62,7 @@ export default async function DashboardPage() {
       href: '/enquiries?status=new',
     },
     {
-      label: 'Active Developers',
+      label: 'Partners',
       value: counts.totalDevelopers,
       total: 'partners on record',
       icon: Users,
@@ -71,9 +71,9 @@ export default async function DashboardPage() {
       href: '/developers',
     },
     {
-      label: 'Micro-Market Corridors',
+      label: 'Areas',
       value: counts.totalCorridors,
-      total: 'Hyderabad mapped',
+      total: 'Bengaluru areas',
       icon: Compass,
       color: 'text-purple-600',
       bg: 'bg-purple-500/10',
@@ -221,6 +221,30 @@ export default async function DashboardPage() {
           {/* Quick Shortcuts & Database Stats */}
           <div className="space-y-6">
             <div className="panel p-5 sm:p-6">
+              <div className="mb-3 flex items-baseline justify-between gap-2">
+                <h2 className="text-base font-semibold text-ink">Listings to complete</h2>
+                <span className="text-2xs text-ink-muted">{counts.incompleteCount} total</span>
+              </div>
+              {counts.incomplete.length === 0 ? (
+                <p className="text-xs text-ink-muted">Every active listing has photos, unit types, floor plans, RERA, a brochure and nearby places.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {counts.incomplete.map((item) => (
+                    <li key={item.id}>
+                      <Link href={`/properties/${item.id}`} className="block rounded-lg border border-line p-2.5 text-xs transition-colors hover:border-line-strong hover:bg-surface-2/60">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="truncate font-semibold text-ink">{item.title}</span>
+                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase ${item.status === 'published' ? 'bg-accent-soft text-accent-ink' : 'bg-amber-500/10 text-amber-700'}`}>{item.status}</span>
+                        </span>
+                        <span className="mt-0.5 block text-2xs text-ink-muted">Missing: {item.missing.join(', ')}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="panel p-5 sm:p-6">
               <h2 className="text-base font-semibold text-ink mb-1">Quick Shortcuts</h2>
               <p className="text-xs text-ink-muted mb-4">Common administrative workflows</p>
 
@@ -253,7 +277,7 @@ export default async function DashboardPage() {
                 >
                   <div className="flex items-center gap-2.5">
                     <Users className="w-4 h-4 text-blue-600" />
-                    <span>Manage Partner Developers</span>
+                    <span>Manage partners</span>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-ink-muted group-hover:translate-x-1 transition-transform" />
                 </Link>
@@ -264,7 +288,7 @@ export default async function DashboardPage() {
                 >
                   <div className="flex items-center gap-2.5">
                     <Compass className="w-4 h-4 text-purple-600" />
-                    <span>Manage Micro-Markets</span>
+                    <span>Manage regions & areas</span>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-ink-muted group-hover:translate-x-1 transition-transform" />
                 </Link>

@@ -21,12 +21,13 @@ import {
 
 interface Props {
   initialEnquiries: Enquiry[];
+  initialStatus?: string;
 }
 
-export function EnquiriesInbox({ initialEnquiries }: Props) {
+export function EnquiriesInbox({ initialEnquiries, initialStatus = 'all' }: Props) {
   const router = useRouter();
   const [enquiries, setEnquiries] = useState<Enquiry[]>(initialEnquiries);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>(initialStatus);
   const [search, setSearch] = useState<string>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});

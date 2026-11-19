@@ -1,278 +1,103 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Corridor, ImageRef } from '@/lib/data/types';
-import { saveCorridorAction } from '@/app/actions/corridors';
-import { MediaUploader } from '@/components/properties/MediaUploader';
-import { Plus, Edit2, Compass, AlertCircle, X, MapPin } from 'lucide-react';
+import { Plus, Edit2, MapPin, AlertTriangle } from 'lucide-react';
+import type { Corridor } from '@/lib/data/types';
+import { Modal } from '@/components/ui/Modal';
+import { CorridorForm, ZONE_OPTIONS, blankCorridor } from './CorridorForm';
 
 interface Props {
   initialCorridors: Corridor[];
+  listingCounts: Record<string, number>;
 }
 
-export function CorridorsManager({ initialCorridors }: Props) {
+export function CorridorsManager({ initialCorridors, listingCounts }: Props) {
   const router = useRouter();
   const [corridors, setCorridors] = useState<Corridor[]>(initialCorridors);
-  const [editing, setEditing] = useState<Corridor | null>(null);
-  const [isNew, setIsNew] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ corridor: Corridor; mode: 'create' | 'edit' } | null>(null);
 
-  const startNew = () => {
-    setIsNew(true);
-    setEditing({
-      id: `corridor-${Date.now()}`,
-      name: '',
-      slug: '',
-      description: '',
-      svgPathId: 'corridor-path',
-      heroImage: null,
-      order: corridors.length + 1,
-      zone: null,
-    });
-    setError(null);
-  };
+  const groups = useMemo(() => {
+    const sorted = [...corridors].sort((a, b) => a.order - b.order);
+    const known = ZONE_OPTIONS.map((z) => ({ id: z.id as string, label: z.label, items: sorted.filter((c) => c.zone === z.id) }));
+    const unassigned = sorted.filter((c) => !c.zone);
+    return [...known.filter((g) => g.items.length), ...(unassigned.length ? [{ id: 'none', label: 'No region yet', items: unassigned }] : [])];
+  }, [corridors]);
 
-  const startEdit = (corr: Corridor) => {
-    setIsNew(false);
-    setEditing({ ...corr });
-    setError(null);
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editing) return;
-    setSaving(true);
-    setError(null);
-
-    const res = await saveCorridorAction(editing);
-    setSaving(false);
-
-    if (res.ok) {
-      if (isNew) {
-        setCorridors([...corridors, res.data]);
-      } else {
-        setCorridors(corridors.map((c) => (c.id === res.data.id ? res.data : c)));
-      }
-      setEditing(null);
-      setIsNew(false);
-      router.refresh();
-    } else {
-      setError(res.message);
-    }
+  const saved = (corridor: Corridor) => {
+    setCorridors((list) => (list.some((c) => c.id === corridor.id) ? list.map((c) => (c.id === corridor.id ? corridor : c)) : [...list, corridor]));
+    setEditing(null);
+    router.refresh();
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-line bg-surface px-5 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
-          <h2 className="text-xl font-bold text-ink">Micro-Market Corridors</h2>
-          <p className="text-xs text-ink-muted mt-0.5">
-            Hyderabad strategic development zones mapped with commute times and infrastructure growth.
-          </p>
+          <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Catalogue</p>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Regions & areas</h1>
+          <p className="mt-0.5 text-sm text-ink-muted">Bengaluru areas (micro-markets) grouped by region. Every listing belongs to one area.</p>
         </div>
-        <button onClick={startNew} className="btn-primary">
-          <Plus className="w-4 h-4" />
-          <span>Add Corridor</span>
+        <button type="button" onClick={() => setEditing({ corridor: blankCorridor(corridors.length + 1), mode: 'create' })} className="btn-primary">
+          <Plus className="h-4 w-4" /> Add area
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {corridors.map((corr) => (
-          <div key={corr.id} className="panel p-5 flex flex-col justify-between hover:border-line-strong transition-all">
-            <div>
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold text-xs">
-                    {corr.order}
-                  </div>
+      {groups.length === 0 && <div className="panel p-10 text-center text-sm text-ink-muted">No areas yet. Add the first Bengaluru area you list projects in.</div>}
+
+      {groups.map((group) => (
+        <section key={group.id} className="space-y-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+            {group.id === 'none' ? <AlertTriangle className="h-4 w-4 text-amber-600" /> : <MapPin className="h-4 w-4 text-accent" />}
+            {group.label}
+            <span className="font-normal text-ink-muted">· {group.items.length}</span>
+          </h2>
+          {group.id === 'none' && <p className="text-2xs text-ink-muted">Assign a region so these areas appear under the right region card on the website.</p>}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {group.items.map((corr) => {
+              const count = listingCounts[corr.id] ?? 0;
+              return (
+                <div key={corr.id} className="panel flex flex-col justify-between p-5 transition-all hover:border-line-strong">
                   <div>
-                    <h3 className="font-bold text-ink text-sm">{corr.name}</h3>
-                    <p className="text-2xs text-ink-muted font-mono">/{corr.slug}</p>
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-bold text-ink">{corr.name}</h3>
+                        <p className="font-mono text-2xs text-ink-muted">/{corr.slug} · order {corr.order}</p>
+                      </div>
+                      <button type="button" onClick={() => setEditing({ corridor: corr, mode: 'edit' })} className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink" title={`Edit ${corr.name}`}>
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {corr.heroImage?.url && (
+                      <div className="my-3 aspect-[16/9] overflow-hidden rounded-lg border border-line bg-surface-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={corr.heroImage.url} alt={corr.heroImage.alt} className="h-full w-full object-cover" />
+                      </div>
+                    )}
+                    <p className="mb-3 line-clamp-3 text-xs text-ink-muted">{corr.description || 'No description yet.'}</p>
+                  </div>
+                  <div className="border-t border-line pt-3 text-xs">
+                    <Link href={`/properties?corridor=${corr.id}`} className="font-medium text-accent-ink hover:underline">
+                      {count} {count === 1 ? 'listing' : 'listings'}
+                    </Link>
                   </div>
                 </div>
-                <button
-                  onClick={() => startEdit(corr)}
-                  className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-muted hover:text-ink transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              {corr.heroImage?.url && (
-                <div className="my-3 rounded-lg overflow-hidden border border-line aspect-[16/9] bg-surface-2">
-                  <img src={corr.heroImage.url} alt={corr.name} className="w-full h-full object-cover" />
-                </div>
-              )}
-
-              <p className="text-xs text-ink-muted line-clamp-3 mb-3">{corr.description || 'No description provided.'}</p>
-              {corr.zone && <span className="inline-flex rounded-full bg-purple-500/10 px-2 py-1 text-2xs font-semibold capitalize text-purple-700">{corr.zone} region</span>}
-            </div>
-
-            <div className="pt-3 border-t border-line text-2xs text-ink-muted flex items-center justify-between">
-              <span>SVG: {corr.svgPathId}</span>
-              <span className="font-mono">ID: {corr.id}</span>
-            </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        </section>
+      ))}
 
-      {/* Edit / New Modal */}
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-scrim/60 backdrop-blur-sm animate-fade-in">
-          <div className="panel bg-surface max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative">
-            <button
-              onClick={() => {
-                setEditing(null);
-                setIsNew(false);
-              }}
-              className="absolute right-4 top-4 p-1.5 rounded-lg hover:bg-surface-2 text-ink-muted hover:text-ink"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <h3 className="text-lg font-bold text-ink mb-1">
-              {isNew ? 'Add Micro-Market Corridor' : `Edit ${editing.name}`}
-            </h3>
-            <p className="text-xs text-ink-muted mb-5">
-              Corridors group projects by location and drive the interactive Hyderabad map view.
-            </p>
-
-            {error && (
-              <div className="mb-4 p-3 rounded-lg bg-danger/10 border border-danger/30 text-danger text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-ink mb-1">Corridor ID *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editing.id}
-                    onChange={(e) => setEditing({ ...editing, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                    disabled={!isNew}
-                    placeholder="e.g. kokapet"
-                    className="field disabled:opacity-60"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-ink mb-1">Display Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editing.name}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-                      setEditing({ ...editing, name, ...(isNew ? { slug } : {}) });
-                    }}
-                    placeholder="e.g. Kokapet & Neopolis"
-                    className="field"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1">Portal Region</label>
-                <select
-                  value={editing.zone || ''}
-                  onChange={(e) => setEditing({ ...editing, zone: (e.target.value || null) as Corridor['zone'] })}
-                  className="field"
-                >
-                  <option value="">Not assigned</option>
-                  <option value="north">North</option>
-                  <option value="east">East</option>
-                  <option value="south-east">South-East</option>
-                  <option value="south">South</option>
-                  <option value="west">West</option>
-                  <option value="central">Central</option>
-                </select>
-                <p className="mt-1 text-2xs text-ink-muted">Controls where this micro-market appears in the public home-page region categories.</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-ink mb-1">URL Slug *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editing.slug}
-                    onChange={(e) => setEditing({ ...editing, slug: e.target.value.toLowerCase() })}
-                    placeholder="e.g. kokapet"
-                    className="field"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-ink mb-1">Display Order</label>
-                  <input
-                    type="number"
-                    value={editing.order}
-                    onChange={(e) => setEditing({ ...editing, order: parseInt(e.target.value, 10) || 0 })}
-                    className="field"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1">Description / Market Overview</label>
-                <textarea
-                  rows={3}
-                  value={editing.description}
-                  onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-                  placeholder="Overview of commercial drivers, upcoming metro, ORR connectivity..."
-                  className="field"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1">SVG Map Path ID</label>
-                <input
-                  type="text"
-                  value={editing.svgPathId}
-                  onChange={(e) => setEditing({ ...editing, svgPathId: e.target.value })}
-                  placeholder="e.g. corridor-kokapet"
-                  className="field"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1">Hero Image</label>
-                <MediaUploader
-                  label="Corridor Hero Image"
-                  storagePath={`corridors/${editing.id}`}
-                  images={editing.heroImage ? [editing.heroImage] : []}
-                  coverId={editing.heroImage?.id || undefined}
-                  onChange={(images) => {
-                    setEditing({ ...editing, heroImage: images[0] || null });
-                  }}
-                  onSetCover={() => {}}
-                />
-              </div>
-
-              <div className="pt-4 border-t border-line flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditing(null);
-                    setIsNew(false);
-                  }}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="btn-primary">
-                  {saving ? 'Saving...' : 'Save Corridor'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={Boolean(editing)}
+        onClose={() => setEditing(null)}
+        title={editing?.mode === 'create' ? 'Add area' : `Edit ${editing?.corridor.name ?? 'area'}`}
+        description="Areas group listings on the website: region → area → locality."
+        width="lg"
+      >
+        {editing && <CorridorForm key={editing.corridor.id || 'new'} initial={editing.corridor} mode={editing.mode} onSaved={saved} onCancel={() => setEditing(null)} />}
+      </Modal>
     </div>
   );
 }

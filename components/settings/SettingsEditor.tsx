@@ -39,7 +39,7 @@ export function SettingsEditor({ initialSettings }: Props) {
         <div>
           <h2 className="text-xl font-bold text-ink">Site & Advisory Settings</h2>
           <p className="text-xs text-ink-muted mt-0.5">
-            Configure SV Praveen RERA registration, official advisor contact numbers, and statutory Telangana fees.
+            Advisor contact details, K-RERA agent registration, Karnataka purchase costs and the legal text shown on the website.
           </p>
         </div>
       </div>
@@ -162,7 +162,7 @@ export function SettingsEditor({ initialSettings }: Props) {
                 onChange={(e) =>
                   setSettings({ ...settings, agent: { ...settings.agent, reraNumber: e.target.value } })
                 }
-                placeholder="A02500000000 / TS RERA"
+                placeholder="PRM/KA/RERA/1251/310/AG/…"
                 className="field"
               />
             </div>
@@ -175,14 +175,15 @@ export function SettingsEditor({ initialSettings }: Props) {
                 onChange={(e) =>
                   setSettings({ ...settings, agent: { ...settings.agent, verifyUrl: e.target.value } })
                 }
-                placeholder="https://rera.telangana.gov.in"
+                placeholder="https://rera.karnataka.gov.in/"
                 className="field"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-ink mb-1">Registration Valid From</label>
               <input
-                type="date"
+                type="text"
+                placeholder="16-09-2026"
                 value={settings.agent.validFrom}
                 onChange={(e) =>
                   setSettings({ ...settings, agent: { ...settings.agent, validFrom: e.target.value } })
@@ -193,7 +194,8 @@ export function SettingsEditor({ initialSettings }: Props) {
             <div>
               <label className="block text-xs font-semibold text-ink mb-1">Registration Valid To</label>
               <input
-                type="date"
+                type="text"
+                placeholder="16-09-2031"
                 value={settings.agent.validTo}
                 onChange={(e) =>
                   setSettings({ ...settings, agent: { ...settings.agent, validTo: e.target.value } })
@@ -204,11 +206,11 @@ export function SettingsEditor({ initialSettings }: Props) {
           </div>
         </div>
 
-        {/* Telangana Statutory Purchase Costs */}
+        {/* Karnataka statutory purchase costs */}
         <div className="panel p-6 space-y-4">
           <div className="flex items-center gap-2 border-b border-line pb-3">
             <DollarSign className="w-4 h-4 text-accent" />
-            <h3 className="font-semibold text-sm text-ink">Telangana Statutory Purchase Costs (Estimated)</h3>
+            <h3 className="font-semibold text-sm text-ink">Karnataka Purchase Costs (Estimated)</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -225,7 +227,7 @@ export function SettingsEditor({ initialSettings }: Props) {
                     costs: { ...settings.costs, stampDutyPct: parseFloat(e.target.value) || 0 },
                   })
                 }
-                placeholder="5.5"
+                placeholder="5.6"
                 className="field"
               />
             </div>
@@ -255,7 +257,7 @@ export function SettingsEditor({ initialSettings }: Props) {
                 onChange={(e) =>
                   setSettings({ ...settings, costs: { ...settings.costs, source: e.target.value } })
                 }
-                placeholder="Registration and Stamps Department, Government of Telangana"
+                placeholder="Department of Stamps and Registration, Karnataka"
                 className="field"
               />
             </div>
@@ -268,6 +270,15 @@ export function SettingsEditor({ initialSettings }: Props) {
                 onChange={(e) =>
                   setSettings({ ...settings, costs: { ...settings.costs, asOf: e.target.value } })
                 }
+                className="field"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-ink mb-1">Note shown under the cost calculator</label>
+              <input
+                type="text"
+                value={settings.costs.note}
+                onChange={(e) => setSettings({ ...settings, costs: { ...settings.costs, note: e.target.value } })}
                 className="field"
               />
             </div>
@@ -305,6 +316,24 @@ export function SettingsEditor({ initialSettings }: Props) {
               />
             </div>
             <div>
+              <label className="block text-xs font-semibold text-ink mb-1">Cost estimate disclaimer</label>
+              <textarea
+                rows={2}
+                value={settings.disclaimers.costs}
+                onChange={(e) => setSettings({ ...settings, disclaimers: { ...settings.disclaimers, costs: e.target.value } })}
+                className="field"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink mb-1">Commute / distance disclaimer</label>
+              <textarea
+                rows={2}
+                value={settings.disclaimers.commute}
+                onChange={(e) => setSettings({ ...settings, disclaimers: { ...settings.disclaimers, commute: e.target.value } })}
+                className="field"
+              />
+            </div>
+            <div>
               <label className="block text-xs font-semibold text-ink mb-1">Lead Consent Text</label>
               <textarea
                 rows={2}
@@ -312,6 +341,39 @@ export function SettingsEditor({ initialSettings }: Props) {
                 onChange={(e) => setSettings({ ...settings, consentText: e.target.value })}
                 className="field"
               />
+              <p className="mt-1 text-2xs text-ink-muted">Each enquiry stores the consent text and version it was given. Change the version below whenever you change this text.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_2fr]">
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">Consent version</label>
+                <input
+                  type="text"
+                  value={settings.consentVersion}
+                  onChange={(e) => setSettings({ ...settings, consentVersion: e.target.value })}
+                  placeholder="2026-11-v1"
+                  className="field font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1">Privacy note under forms</label>
+                <input
+                  type="text"
+                  value={settings.privacyNote}
+                  onChange={(e) => setSettings({ ...settings, privacyNote: e.target.value })}
+                  className="field"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink mb-1">Featured partner (registered company name)</label>
+              <input
+                type="text"
+                value={settings.partnerDeveloper}
+                onChange={(e) => setSettings({ ...settings, partnerDeveloper: e.target.value })}
+                placeholder="Must match a partner's registered company name"
+                className="field"
+              />
+              <p className="mt-1 text-2xs text-ink-muted">The home page partner section shows the partner whose registered name matches this.</p>
             </div>
           </div>
         </div>

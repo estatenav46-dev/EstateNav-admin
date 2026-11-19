@@ -15,6 +15,8 @@ import {
   siteSettingsSchema,
 } from './schemas';
 import type { Corridor, Developer, Enquiry, OfficeHub, Property, PublishStatus, SiteSettings } from './types';
+import { DEFAULT_SETTINGS } from './defaults';
+import { APPROVED_PARTNERS } from '../partners';
 
 export type PropertyDraft = Omit<Property, 'createdAt' | 'updatedAt' | 'publishedAt' | 'createdBy' | 'updatedBy'> & {
   publishedAt?: string | null;
@@ -31,8 +33,26 @@ export async function getDashboardCounts() {
     db.collection('enquiries').get(),
   ]);
 
-  const properties = propsSnap.docs.map((d) => d.data() as Property);
+  // Parse through the converters so older records pick up defaults for newer fields.
+  const properties = propsSnap.docs.map((d) => propertyConverter.fromFirestore(d));
   const enquiries = enqSnap.docs.map((d) => d.data() as Enquiry);
+  const incomplete = properties
+    .filter((p) => p.status !== 'archived')
+    .map((p) => ({
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      missing: [
+        !p.media.gallery.length && 'photos',
+        !p.configurations.length && 'unit types',
+        p.configurations.length > 0 && !p.configurations.some((c) => c.floorPlanImageId) && !p.media.floorPlans.length && 'floor plans',
+        !p.rera.number && 'K-RERA number',
+        !p.documents.length && 'brochure',
+        p.nearby.length < 3 && 'nearby places',
+      ].filter((m): m is string => Boolean(m)),
+    }))
+    .filter((p) => p.missing.length > 0)
+    .sort((a, b) => (a.status === b.status ? b.missing.length - a.missing.length : a.status === 'published' ? -1 : 1));
 
   const published = properties.filter((p) => p.status === 'published').length;
   const drafts = properties.filter((p) => p.status === 'draft').length;
@@ -53,6 +73,8 @@ export async function getDashboardCounts() {
     newEnquiries,
     recentEnquiriesCount,
     recentEnquiries: enquiries.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8),
+    incomplete: incomplete.slice(0, 8),
+    incompleteCount: incomplete.length,
   };
 }
 
@@ -164,6 +186,41 @@ export async function listDevelopers(): Promise<Developer[]> {
   return snap.docs.map((d) => d.data());
 }
 
+/**
+ * Returns the partner record for a listing, creating it first when it is one of the approved
+ * partners that has not been used yet. Unknown IDs that are not in the database return null.
+ */
+export async function ensurePartnerRecord(id: string): Promise<{ developer: Developer; created: boolean } | null> {
+  const db = getDb();
+  const snap = await db.collection('developers').doc(id).withConverter(developerConverter).get();
+  if (snap.exists) return { developer: snap.data()!, created: false };
+  const approved = APPROVED_PARTNERS.find((p) => p.id === id);
+  if (!approved) return null;
+  const developer = await saveDeveloper({
+    id: approved.id,
+    name: approved.name,
+    legalName: approved.name,
+    about: '',
+    yearsActive: null,
+    sqftDelivered: null,
+    constructionTech: null,
+    projectsDelivered: null,
+    headquarters: null,
+    sources: [],
+    website: null,
+    logo: null,
+  });
+  return { developer, created: true };
+}
+
+/** Creates a partner; refuses to overwrite an existing id (used by the inline "add partner" flow). */
+export async function createDeveloper(input: unknown): Promise<Developer> {
+  const record = developerSchema.parse(input);
+  const existing = await getDb().collection('developers').doc(record.id).get();
+  if (existing.exists) throw new Error(`A partner with the ID "${record.id}" already exists. Pick it from the list or use another ID.`);
+  return saveDeveloper(record);
+}
+
 export async function saveDeveloper(input: unknown): Promise<Developer> {
   const db = getDb();
   const record = developerSchema.parse(input);
@@ -188,6 +245,14 @@ export async function listCorridors(): Promise<Corridor[]> {
   const results = snap.docs.map((d) => d.data());
   results.sort((a, b) => a.order - b.order);
   return results;
+}
+
+/** Creates an area; refuses to overwrite an existing id (used by the inline "add area" flow). */
+export async function createCorridor(input: unknown): Promise<Corridor> {
+  const record = corridorSchema.parse(input);
+  const existing = await getDb().collection('corridors').doc(record.id).get();
+  if (existing.exists) throw new Error(`An area with the ID "${record.id}" already exists. Pick it from the list or use another ID.`);
+  return saveCorridor(record);
 }
 
 export async function saveCorridor(input: unknown): Promise<Corridor> {
@@ -239,9 +304,8 @@ export async function updateEnquiry(id: string, patch: Partial<Pick<Enquiry, 'st
 export async function getSettings(): Promise<SiteSettings> {
   const db = getDb();
   const doc = await db.collection('settings').doc('site').withConverter(settingsConverter).get();
-  if (!doc.exists) {
-    throw new Error('Site settings document not found in Firestore.');
-  }
+  // A fresh database has no settings yet: start from the built-in Karnataka defaults.
+  if (!doc.exists) return DEFAULT_SETTINGS;
   const { id: _id, ...rest } = doc.data()!;
   return rest;
 }

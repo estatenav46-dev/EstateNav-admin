@@ -25,11 +25,14 @@ export const fileRefSchema = z.object({
 
 export const segmentSchema = z.enum(['residential', 'plot', 'commercial']);
 export const transactionSchema = z.enum(['sale', 'rent']);
-export const propertyTypeSchema = z.enum(['apartment', 'villa', 'row-house', 'plot', 'office', 'retail']);
+export const propertyTypeSchema = z.enum(['apartment', 'villa', 'row-house', 'villament', 'penthouse', 'independent-house', 'plot', 'office', 'retail']);
 export const publishStatusSchema = z.enum(['draft', 'published', 'archived']);
 export const possessionStatusSchema = z.enum(['ready', 'under-construction', 'pre-launch']);
 export const lensSchema = z.enum(['first-home', 'upgrading', 'nri', 'senior', 'investor']);
+export const unitAvailabilitySchema = z.enum(['available', 'limited', 'sold-out']);
 
+// For plotted listings the carpet fields hold the plot area. The optional fields were added
+// later; older records simply do not have them.
 export const configurationSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -41,9 +44,76 @@ export const configurationSchema = z.object({
   priceMin: z.number().int().positive().nullable(),
   priceMax: z.number().int().positive().nullable(),
   floorPlanImageId: z.string().nullable(),
+  bathrooms: z.number().int().positive().nullable().optional(),
+  /** Plot or villa dimensions, e.g. "30 × 40 ft". */
+  dimensions: z.string().max(60).nullable().optional(),
+  availability: unitAvailabilitySchema.optional(),
+  /** Short note such as "with study" or "duplex". */
+  notes: z.string().max(200).optional(),
 });
 
 export const sourcedSchema = z.object({ source: z.string().min(1), asOf: isoDate });
+
+// ---- Listing details. Every field defaults, so listings saved before they existed still parse. ----
+
+export const projectFactsSchema = z.object({
+  landAcres: z.number().positive().nullable().default(null),
+  totalUnits: z.number().int().positive().nullable().default(null),
+  towers: z.number().int().positive().nullable().default(null),
+  /** Free text such as "2B + G + 32". */
+  floors: z.string().max(60).nullable().default(null),
+  openSpacePct: z.number().min(0).max(100).nullable().default(null),
+  clubhouseSqft: z.number().int().positive().nullable().default(null),
+  launchDate: isoDate.nullable().default(null),
+});
+
+export const specificationSchema = z.object({
+  id: z.string().min(1),
+  category: z.string().trim().min(1, 'Add a category').max(60),
+  detail: z.string().trim().min(1, 'Add the specification').max(400),
+});
+
+export const nearbyCategorySchema = z.enum([
+  'metro', 'railway', 'airport', 'bus', 'highway', 'it-park', 'school', 'college', 'hospital', 'mall', 'market', 'park', 'landmark',
+]);
+
+export const nearbyPlaceSchema = z.object({
+  id: z.string().min(1),
+  category: nearbyCategorySchema,
+  name: z.string().trim().min(1, 'Name the place').max(120),
+  distanceKm: z.number().nonnegative().max(500).nullable().default(null),
+  travelMins: z.number().int().positive().max(600).nullable().default(null),
+});
+
+export const documentKindSchema = z.enum([
+  'brochure', 'floor-plans', 'master-plan', 'price-sheet', 'payment-plan', 'specifications', 'rera-certificate', 'approval', 'other',
+]);
+
+export const propertyDocumentSchema = z.object({
+  id: z.string().min(1),
+  kind: documentKindSchema,
+  label: z.string().trim().min(1, 'Name the document').max(120),
+  url: z.string().url('Upload the file or paste a valid link'),
+  /** Cloudinary public id; empty for documents linked from another site. */
+  storagePath: z.string().default(''),
+  format: z.enum(['pdf', 'image', 'link']).default('pdf'),
+  sizeBytes: z.number().int().nonnegative().nullable().default(null),
+  /** 'public' downloads straight away; 'on-request' asks the visitor to enquire first. */
+  access: z.enum(['public', 'on-request']).default('on-request'),
+});
+
+/** Admin-defined label/value pairs for anything the fixed fields do not cover. */
+export const extraDetailSchema = z.object({
+  id: z.string().min(1),
+  group: z.string().trim().max(60).default('More details'),
+  label: z.string().trim().min(1, 'Add a label').max(80),
+  value: z.string().trim().min(1, 'Add a value').max(500),
+});
+
+export const offerSchema = z.object({
+  text: z.string().trim().min(1).max(200),
+  validUntil: isoDate.nullable().default(null),
+});
 
 export const propertySchema = z.object({
   id: z.string().min(1),
@@ -79,8 +149,18 @@ export const propertySchema = z.object({
   sizeMax: z.number().int().positive().nullable(),
   pricePerSqft: z.number().positive().nullable(),
   rentPerMonth: z.number().int().positive().nullable(),
+  /** Hides every price on the website; priceMin still drives budget filters and sorting. */
+  priceOnRequest: z.boolean().default(false),
+  /** e.g. "+ GST, registration and other charges" or "All-inclusive". */
+  priceNote: z.string().max(160).default(''),
 
-  possession: z.object({ status: possessionStatusSchema, date: isoDate.nullable(), label: z.string().min(1) }),
+  possession: z.object({
+    status: possessionStatusSchema,
+    date: isoDate.nullable(),
+    label: z.string().min(1),
+    /** Completion date on the K-RERA registration, when it differs from the developer's target. */
+    reraDate: isoDate.nullable().optional(),
+  }),
 
   rera: z.object({ number: z.string().nullable(), verifyUrl: z.string().url().nullable(), registered: z.boolean() }),
   approvals: z.object({
@@ -99,7 +179,17 @@ export const propertySchema = z.object({
     gallery: z.array(imageRefSchema),
     floorPlans: z.array(imageRefSchema),
     brochure: fileRefSchema.nullable(),
+    masterPlan: imageRefSchema.nullable().optional(),
+    videoUrl: z.string().url().nullable().optional(),
+    virtualTourUrl: z.string().url().nullable().optional(),
   }),
+
+  facts: projectFactsSchema.default({}),
+  specifications: z.array(specificationSchema).default([]),
+  nearby: z.array(nearbyPlaceSchema).default([]),
+  documents: z.array(propertyDocumentSchema).default([]),
+  extraDetails: z.array(extraDetailSchema).default([]),
+  offer: offerSchema.nullable().default(null),
 
   metrics: z.object({ grossYield: z.number().positive() }).merge(sourcedSchema).nullable(),
   commute: z.array(
@@ -115,7 +205,7 @@ export const propertySchema = z.object({
   updatedBy: z.string(),
 });
 
-const developerFactField = z.enum(['yearsActive', 'sqftDelivered', 'constructionTech']);
+export const developerFactField = z.enum(['yearsActive', 'sqftDelivered', 'constructionTech', 'projectsDelivered']);
 
 export const developerSchema = z.object({
   id: z.string().min(1),
@@ -125,6 +215,8 @@ export const developerSchema = z.object({
   yearsActive: z.number().int().positive().nullable(),
   sqftDelivered: z.number().int().positive().nullable(),
   constructionTech: z.string().nullable(),
+  projectsDelivered: z.number().int().positive().nullable().default(null),
+  headquarters: z.string().max(120).nullable().default(null),
   sources: z.array(z.object({ field: developerFactField, label: z.string().min(1), url: z.string().url().nullable(), asOf: isoDate })),
   website: z.string().url().nullable(),
   logo: imageRefSchema.nullable(),

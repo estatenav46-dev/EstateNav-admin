@@ -107,7 +107,7 @@ export function AdminShell({ children, userEmail }: { children: React.ReactNode;
                 key={item.href}
                 href={item.href}
                 className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium ${
-                  pathname === item.href ? 'bg-accent-soft text-accent-ink font-semibold' : 'text-ink-muted'
+                  (item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)) ? 'bg-accent-soft text-accent-ink font-semibold' : 'text-ink-muted'
                 }`}
               >
                 {item.label}
