@@ -73,7 +73,7 @@ export default async function DashboardPage() {
     {
       label: 'Micro-Market Corridors',
       value: counts.totalCorridors,
-      total: 'Hyderabad mapped',
+      total: 'Bengaluru areas',
       icon: Compass,
       color: 'text-purple-600',
       bg: 'bg-purple-500/10',

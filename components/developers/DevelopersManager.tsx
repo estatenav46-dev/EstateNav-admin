@@ -186,7 +186,7 @@ export function DevelopersManager({ initialDevelopers }: Props) {
                     value={editing.id}
                     onChange={(e) => setEditing({ ...editing, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
                     disabled={!isNew}
-                    placeholder="e.g. aparna"
+                    placeholder="e.g. sobha"
                     className="field disabled:opacity-60"
                   />
                 </div>
@@ -197,7 +197,7 @@ export function DevelopersManager({ initialDevelopers }: Props) {
                     required
                     value={editing.name}
                     onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                    placeholder="e.g. Aparna Constructions"
+                    placeholder="e.g. Sobha"
                     className="field"
                   />
                 </div>
@@ -210,7 +210,7 @@ export function DevelopersManager({ initialDevelopers }: Props) {
                   required
                   value={editing.legalName}
                   onChange={(e) => setEditing({ ...editing, legalName: e.target.value })}
-                  placeholder="e.g. Aparna Constructions and Estates Private Limited"
+                  placeholder="e.g. Sobha Limited"
                   className="field"
                 />
               </div>
@@ -221,7 +221,7 @@ export function DevelopersManager({ initialDevelopers }: Props) {
                   rows={3}
                   value={editing.about}
                   onChange={(e) => setEditing({ ...editing, about: e.target.value })}
-                  placeholder="Summary of construction history, footprint in Hyderabad, architectural standards..."
+                  placeholder="Summary of construction history, footprint in Bengaluru, architectural standards..."
                   className="field"
                 />
               </div>
@@ -270,7 +270,7 @@ export function DevelopersManager({ initialDevelopers }: Props) {
                   type="url"
                   value={editing.website || ''}
                   onChange={(e) => setEditing({ ...editing, website: e.target.value || null })}
-                  placeholder="https://aparnaconstructions.com"
+                  placeholder="https://www.sobha.com"
                   className="field"
                 />
               </div>

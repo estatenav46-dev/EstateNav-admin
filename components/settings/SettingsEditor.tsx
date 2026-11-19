@@ -39,7 +39,7 @@ export function SettingsEditor({ initialSettings }: Props) {
         <div>
           <h2 className="text-xl font-bold text-ink">Site & Advisory Settings</h2>
           <p className="text-xs text-ink-muted mt-0.5">
-            Configure SV Praveen RERA registration, official advisor contact numbers, and statutory Telangana fees.
+            Configure the K-RERA registration of SV Praveen, official advisor contact numbers, and Karnataka purchase costs.
           </p>
         </div>
       </div>
@@ -162,7 +162,7 @@ export function SettingsEditor({ initialSettings }: Props) {
                 onChange={(e) =>
                   setSettings({ ...settings, agent: { ...settings.agent, reraNumber: e.target.value } })
                 }
-                placeholder="A02500000000 / TS RERA"
+                placeholder="PRM/KA/RERA/1251/310/AG/…"
                 className="field"
               />
             </div>
@@ -175,14 +175,15 @@ export function SettingsEditor({ initialSettings }: Props) {
                 onChange={(e) =>
                   setSettings({ ...settings, agent: { ...settings.agent, verifyUrl: e.target.value } })
                 }
-                placeholder="https://rera.telangana.gov.in"
+                placeholder="https://rera.karnataka.gov.in/"
                 className="field"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-ink mb-1">Registration Valid From</label>
               <input
-                type="date"
+                type="text"
+                placeholder="16-09-2026"
                 value={settings.agent.validFrom}
                 onChange={(e) =>
                   setSettings({ ...settings, agent: { ...settings.agent, validFrom: e.target.value } })
@@ -193,7 +194,8 @@ export function SettingsEditor({ initialSettings }: Props) {
             <div>
               <label className="block text-xs font-semibold text-ink mb-1">Registration Valid To</label>
               <input
-                type="date"
+                type="text"
+                placeholder="16-09-2031"
                 value={settings.agent.validTo}
                 onChange={(e) =>
                   setSettings({ ...settings, agent: { ...settings.agent, validTo: e.target.value } })
@@ -204,11 +206,11 @@ export function SettingsEditor({ initialSettings }: Props) {
           </div>
         </div>
 
-        {/* Telangana Statutory Purchase Costs */}
+        {/* Karnataka Statutory Purchase Costs */}
         <div className="panel p-6 space-y-4">
           <div className="flex items-center gap-2 border-b border-line pb-3">
             <DollarSign className="w-4 h-4 text-accent" />
-            <h3 className="font-semibold text-sm text-ink">Telangana Statutory Purchase Costs (Estimated)</h3>
+            <h3 className="font-semibold text-sm text-ink">Karnataka Statutory Purchase Costs (Estimated)</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -225,7 +227,7 @@ export function SettingsEditor({ initialSettings }: Props) {
                     costs: { ...settings.costs, stampDutyPct: parseFloat(e.target.value) || 0 },
                   })
                 }
-                placeholder="5.5"
+                placeholder="5.6"
                 className="field"
               />
             </div>
@@ -255,7 +257,7 @@ export function SettingsEditor({ initialSettings }: Props) {
                 onChange={(e) =>
                   setSettings({ ...settings, costs: { ...settings.costs, source: e.target.value } })
                 }
-                placeholder="Registration and Stamps Department, Government of Telangana"
+                placeholder="Department of Stamps and Registration, Karnataka"
                 className="field"
               />
             </div>

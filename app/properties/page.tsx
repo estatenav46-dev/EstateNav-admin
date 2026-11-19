@@ -24,7 +24,7 @@ export default async function PropertiesPage() {
             <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Catalogue</p>
             <h1 className="text-2xl font-bold tracking-tight text-ink">Property Listings</h1>
             <p className="text-sm text-ink-muted mt-0.5">
-              Manage Hyderabad project listings, pricing, configurations, and verification facts.
+              Manage Bengaluru project listings, pricing, configurations, and verification facts.
             </p>
           </div>
           <Link href="/properties/new" className="btn-primary w-full sm:w-auto">

@@ -69,7 +69,7 @@ export function CorridorsManager({ initialCorridors }: Props) {
         <div>
           <h2 className="text-xl font-bold text-ink">Micro-Market Corridors</h2>
           <p className="text-xs text-ink-muted mt-0.5">
-            Hyderabad strategic development zones mapped with commute times and infrastructure growth.
+            Bengaluru micro-markets grouped by region, used for the region and area filters on the website.
           </p>
         </div>
         <button onClick={startNew} className="btn-primary">
@@ -136,7 +136,7 @@ export function CorridorsManager({ initialCorridors }: Props) {
               {isNew ? 'Add Micro-Market Corridor' : `Edit ${editing.name}`}
             </h3>
             <p className="text-xs text-ink-muted mb-5">
-              Corridors group projects by location and drive the interactive Hyderabad map view.
+              Corridors group Bengaluru projects by location and drive the region filters on the website.
             </p>
 
             {error && (
@@ -156,7 +156,7 @@ export function CorridorsManager({ initialCorridors }: Props) {
                     value={editing.id}
                     onChange={(e) => setEditing({ ...editing, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
                     disabled={!isNew}
-                    placeholder="e.g. kokapet"
+                    placeholder="e.g. sarjapur-road"
                     className="field disabled:opacity-60"
                   />
                 </div>
@@ -171,7 +171,7 @@ export function CorridorsManager({ initialCorridors }: Props) {
                       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
                       setEditing({ ...editing, name, ...(isNew ? { slug } : {}) });
                     }}
-                    placeholder="e.g. Kokapet & Neopolis"
+                    placeholder="e.g. Sarjapur Road"
                     className="field"
                   />
                 </div>
@@ -203,7 +203,7 @@ export function CorridorsManager({ initialCorridors }: Props) {
                     required
                     value={editing.slug}
                     onChange={(e) => setEditing({ ...editing, slug: e.target.value.toLowerCase() })}
-                    placeholder="e.g. kokapet"
+                    placeholder="e.g. sarjapur-road"
                     className="field"
                   />
                 </div>
@@ -235,7 +235,7 @@ export function CorridorsManager({ initialCorridors }: Props) {
                   type="text"
                   value={editing.svgPathId}
                   onChange={(e) => setEditing({ ...editing, svgPathId: e.target.value })}
-                  placeholder="e.g. corridor-kokapet"
+                  placeholder="e.g. corridor-sarjapur"
                   className="field"
                 />
               </div>
