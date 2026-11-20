@@ -70,3 +70,18 @@ export async function setBlogStatusAction(id: string, status: BlogPost['status']
     return { ok: false, message: error instanceof Error ? error.message : 'Could not update the post.' };
   }
 }
+
+/** Featured posts rotate in the carousel at the top of the website's blog page and home section. */
+export async function setBlogFeaturedAction(id: string, featured: boolean): Promise<Result<BlogPost>> {
+  try {
+    const session = await requireAuth();
+    const existing = await getBlogById(id);
+    if (!existing) return { ok: false, message: 'Post not found.' };
+    const { createdAt: _c, updatedAt: _u, createdBy: _cb, updatedBy: _ub, ...rest } = existing;
+    const data = await saveBlog({ ...rest, featured }, session.email);
+    await refresh(data);
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Could not update the post.' };
+  }
+}

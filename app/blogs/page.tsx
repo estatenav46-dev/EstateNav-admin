@@ -18,7 +18,7 @@ export default async function BlogsPage() {
           <div>
             <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Content</p>
             <h1 className="text-2xl font-bold tracking-tight text-ink">Blog</h1>
-            <p className="mt-0.5 text-sm text-ink-muted">Guides and market notes published on the website under /blogs. The newest (or featured) post leads the blog page.</p>
+            <p className="mt-0.5 text-sm text-ink-muted">Guides and market notes for the website blog. Star a post to feature it in the carousel at the top of the blog page and on the home page; with none starred, the newest post leads.</p>
           </div>
           <Link href="/blogs/new" className="btn-primary w-full sm:w-auto">
             <Plus className="h-4 w-4" /> Write a post

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  AlertCircle, Bold, Check, ExternalLink, Heading2, Heading3, ImagePlus, Italic, Link2, List, ListOrdered, Loader2, Minus, Quote, Save, Send, Undo2, X,
+  AlertCircle, Bold, Check, ExternalLink, Heading2, Heading3, ImagePlus, Italic, Link2, List, ListOrdered, Loader2, Minus, Quote, Save, Send, Star, Undo2, X,
 } from 'lucide-react';
 import type { BlogPost, Property } from '@/lib/data/types';
 import { checkBlogSlugAction, saveBlogAction } from '@/app/actions/blogs';
@@ -151,6 +151,26 @@ export function BlogEditor({ initial, properties }: Props) {
   const published = saved.status === 'published';
   const shownProps = properties.filter((p) => `${p.title} ${p.locality}`.toLowerCase().includes(propQuery.toLowerCase())).slice(0, 40);
 
+  const publishButtons = published ? (
+    <>
+      <button type="button" onClick={() => save('draft')} disabled={busy !== null} className="btn-secondary min-h-[34px] px-3 text-xs">
+        {busy === 'draft' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />} Unpublish
+      </button>
+      <button type="button" onClick={() => save('published')} disabled={busy !== null} className="btn-primary min-h-[34px] px-3 text-xs">
+        {busy === 'published' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Update
+      </button>
+    </>
+  ) : (
+    <>
+      <button type="button" onClick={() => save('draft')} disabled={busy !== null} className="btn-secondary min-h-[34px] px-3 text-xs">
+        {busy === 'draft' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save draft
+      </button>
+      <button type="button" onClick={() => save('published')} disabled={busy !== null} className="btn-primary min-h-[34px] px-3 text-xs">
+        {busy === 'published' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publish
+      </button>
+    </>
+  );
+
   const tools: { icon: typeof Bold; label: string; run: () => void }[] = [
     { icon: Heading2, label: 'Heading', run: () => format('## ', '', 'Section heading', true) },
     { icon: Heading3, label: 'Sub-heading', run: () => format('### ', '', 'Sub-heading', true) },
@@ -178,13 +198,16 @@ export function BlogEditor({ initial, properties }: Props) {
             <span className={`rounded-full px-2.5 py-0.5 text-2xs font-semibold uppercase ${published ? 'bg-accent-soft text-accent-ink' : 'bg-amber-500/10 text-amber-700'}`}>{isNew ? 'New post' : saved.status}</span>
             {dirty && <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-2xs font-semibold text-ink-muted">Unsaved changes</span>}
           </div>
-          <h1 className="mt-1 truncate text-2xl font-bold tracking-tight text-ink">{post.title || 'Untitled post'}</h1>
+          <h1 className="mt-1 truncate text-xl font-bold tracking-tight text-ink sm:text-2xl">{post.title || 'New blog post'}</h1>
         </div>
-        {published && (
-          <a href={`${SITE_URL}/blogs/${saved.slug}`} target="_blank" rel="noopener noreferrer" className="btn-secondary shrink-0 text-xs">
-            <ExternalLink className="h-3.5 w-3.5" /> View on website
-          </a>
-        )}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {published && (
+            <a href={`${SITE_URL}/blogs/${saved.slug}`} target="_blank" rel="noopener noreferrer" className="btn-secondary min-h-[34px] px-3 text-xs">
+              <ExternalLink className="h-3.5 w-3.5" /> View on website
+            </a>
+          )}
+          {publishButtons}
+        </div>
       </div>
 
       {message && (
@@ -196,24 +219,37 @@ export function BlogEditor({ initial, properties }: Props) {
         </div>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         {/* Writing area */}
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-3">
           <div className="panel space-y-3 p-4">
-            <input value={post.title} onChange={(e) => set('title', e.target.value)} placeholder="Post title, e.g. How to check a project's K-RERA registration" className="w-full bg-transparent text-xl font-bold tracking-tight text-ink outline-none placeholder:text-ink-muted/50" maxLength={140} />
-            <div className="flex flex-wrap items-center gap-1 text-2xs text-ink-muted">
-              <span>{SITE_URL.replace(/^https?:\/\//, '')}/blogs/</span>
+            <Field label="Title" hint={`${post.title.length}/140 · the headline on the blog page and in Google.`}>
               <input
-                value={post.slug}
-                onChange={(e) => {
-                  setSlugTouched(true);
-                  set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
-                }}
-                className="min-w-[10rem] flex-1 rounded border border-transparent bg-surface-2 px-1.5 py-0.5 font-mono text-2xs text-ink focus:border-accent focus:outline-none"
+                value={post.title}
+                onChange={(e) => set('title', e.target.value)}
+                placeholder="e.g. How to check a project's K-RERA registration"
+                className="field text-base font-semibold"
+                maxLength={140}
+                autoFocus={isNew}
               />
-              {slugFree === false && <span className="font-semibold text-danger">Already used</span>}
-              {slugFree === true && <span className="font-semibold text-accent-ink">Available</span>}
-            </div>
+            </Field>
+            <Field label="Web address" hint={slugTouched ? 'Lower-case words joined by hyphens.' : 'Filled in from the title; edit it if you want a shorter link.'}>
+              <div className="flex items-stretch overflow-hidden rounded-lg border border-line bg-surface focus-within:border-accent">
+                <span className="flex items-center border-r border-line bg-surface-2 px-2.5 font-mono text-2xs text-ink-muted">/blogs/</span>
+                <input
+                  value={post.slug}
+                  onChange={(e) => {
+                    setSlugTouched(true);
+                    set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
+                  }}
+                  placeholder="how-to-check-k-rera-registration"
+                  className="min-w-0 flex-1 bg-transparent px-2.5 py-2 font-mono text-xs text-ink outline-none"
+                />
+                {slugFree !== null && (
+                  <span className={`flex items-center px-2.5 text-2xs font-semibold ${slugFree ? 'text-accent-ink' : 'text-danger'}`}>{slugFree ? 'Available' : 'Already used'}</span>
+                )}
+              </div>
+            </Field>
             <Field label="Short description" hint={`${post.excerpt.length}/320 · shown on blog cards and in Google. Left empty, the first lines of the article are used.`}>
               <textarea value={post.excerpt} onChange={(e) => set('excerpt', e.target.value)} rows={2} maxLength={320} className="field" placeholder="One or two sentences on what the reader will learn." />
             </Field>
@@ -252,11 +288,11 @@ export function BlogEditor({ initial, properties }: Props) {
                     }
                   }}
                   placeholder={'Write the article here.\n\n## Use headings for sections\n\nParagraphs are separated by a blank line. Use the toolbar for lists, quotes, links and images (you can also paste an image).'}
-                  className="min-h-[28rem] w-full resize-y border-0 bg-surface p-4 font-mono text-[13px] leading-relaxed text-ink outline-none"
+                  className="min-h-[24rem] w-full resize-y border-0 bg-surface p-4 font-mono text-[13px] leading-relaxed text-ink outline-none"
                 />
               )}
               {mode !== 'write' && (
-                <div className={`max-h-[40rem] min-h-[28rem] overflow-y-auto bg-bg/60 p-5 ${mode === 'split' ? 'border-t border-line lg:border-l lg:border-t-0' : ''}`}>
+                <div className={`max-h-[40rem] min-h-[24rem] overflow-y-auto bg-bg/60 p-5 ${mode === 'split' ? 'border-t border-line lg:border-l lg:border-t-0' : ''}`}>
                   {post.body.trim() ? <ArticleBody source={post.body} /> : <p className="text-sm text-ink-muted">The preview appears here as you write.</p>}
                 </div>
               )}
@@ -268,34 +304,21 @@ export function BlogEditor({ initial, properties }: Props) {
         </div>
 
         {/* Settings sidebar */}
-        <aside className="space-y-4 xl:sticky xl:top-[72px] xl:self-start">
-          <div className="panel space-y-2 p-4">
-            <p className="text-sm font-semibold">Publish</p>
-            <div className="grid grid-cols-2 gap-2">
-              {published ? (
-                <>
-                  <button type="button" onClick={() => save('draft')} disabled={busy !== null} className="btn-secondary text-xs">
-                    {busy === 'draft' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />} Unpublish
-                  </button>
-                  <button type="button" onClick={() => save('published')} disabled={busy !== null} className="btn-primary text-xs">
-                    {busy === 'published' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Update
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button type="button" onClick={() => save('draft')} disabled={busy !== null} className="btn-secondary text-xs">
-                    {busy === 'draft' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save draft
-                  </button>
-                  <button type="button" onClick={() => save('published')} disabled={busy !== null} className="btn-primary text-xs">
-                    {busy === 'published' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publish
-                  </button>
-                </>
-              )}
-            </div>
-            <label className="flex cursor-pointer items-center gap-2 pt-1 text-xs">
-              <input type="checkbox" checked={post.featured} onChange={(e) => set('featured', e.target.checked)} className="h-4 w-4 accent-[rgb(var(--accent))]" />
-              Feature at the top of the blog page
-            </label>
+        <aside className="space-y-3">
+          <div className="panel space-y-3 p-4">
+            <p className="text-sm font-semibold">Visibility</p>
+            <button
+              type="button"
+              onClick={() => set('featured', !post.featured)}
+              aria-pressed={post.featured}
+              className={`flex w-full items-start gap-2.5 rounded-lg border p-2.5 text-left transition-colors ${post.featured ? 'border-amber-400/60 bg-amber-500/10' : 'border-line hover:border-line-strong hover:bg-surface-2/60'}`}
+            >
+              <Star className={`mt-0.5 h-4 w-4 shrink-0 ${post.featured ? 'fill-amber-400 text-amber-500' : 'text-ink-muted'}`} />
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold text-ink">{post.featured ? 'Featured in the carousel' : 'Feature this post'}</span>
+                <span className="block text-2xs leading-snug text-ink-muted">Featured posts rotate in the carousel at the top of the blog page and on the home page. Save or publish to apply.</span>
+              </span>
+            </button>
             <Field label="Publish date" hint="Leave empty to use the moment you publish.">
               <input type="date" value={post.publishedAt?.slice(0, 10) ?? ''} onChange={(e) => set('publishedAt', e.target.value ? `${e.target.value}T09:00:00.000Z` : null)} className="field text-xs" />
             </Field>

@@ -6,7 +6,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Edit, ExternalLink, FileText, Search, Star, Trash2 } from 'lucide-react';
 import type { BlogPost } from '@/lib/data/types';
-import { deleteBlogAction, setBlogStatusAction } from '@/app/actions/blogs';
+import { deleteBlogAction, setBlogFeaturedAction, setBlogStatusAction } from '@/app/actions/blogs';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://estatenav.in').replace(/\/$/, '');
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
@@ -82,6 +82,16 @@ export function BlogList({ posts }: { posts: BlogPost[] }) {
                 {p.excerpt && <p className="truncate text-xs text-ink-muted">{p.excerpt}</p>}
               </div>
               <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => run(() => setBlogFeaturedAction(p.id, !p.featured))}
+                  aria-pressed={p.featured}
+                  title={p.featured ? 'Featured: shown in the carousel on the website. Click to remove.' : 'Feature this post in the carousel on the website'}
+                  className={`rounded p-1.5 transition-colors ${p.featured ? 'text-amber-500 hover:bg-amber-500/10' : 'text-ink-muted hover:bg-surface-2 hover:text-amber-500'}`}
+                >
+                  <Star className={`h-4 w-4 ${p.featured ? 'fill-current' : ''}`} />
+                </button>
                 <button type="button" disabled={pending} onClick={() => run(() => setBlogStatusAction(p.id, p.status === 'published' ? 'draft' : 'published'))} className="btn-secondary min-h-[32px] px-2.5 text-2xs">
                   {p.status === 'published' ? 'Unpublish' : 'Publish'}
                 </button>
