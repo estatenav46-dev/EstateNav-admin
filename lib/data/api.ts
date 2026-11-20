@@ -24,20 +24,36 @@ export type PropertyDraft = Omit<Property, 'createdAt' | 'updatedAt' | 'publishe
   publishedAt?: string | null;
 };
 
+
+// ---- Short-lived read cache ----
+// Admin pages re-read the same lists on every click; keep them for a few seconds per server
+// instance. Every write clears it, so edits show at once. Enquiries are never cached.
+const CACHE_MS = 10_000;
+const memo = new Map<string, { at: number; value: Promise<unknown> }>();
+function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const hit = memo.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.value as Promise<T>;
+  const value = load().catch((error) => {
+    memo.delete(key);
+    throw error;
+  });
+  memo.set(key, { at: Date.now(), value });
+  return value;
+}
+export function clearReadCache() {
+  memo.clear();
+}
+
 const today = () => new Date().toISOString().slice(0, 10);
 
 export async function getDashboardCounts() {
-  const db = getDb();
-  const [propsSnap, devsSnap, corrSnap, enqSnap] = await Promise.all([
-    db.collection('properties').get(),
-    db.collection('developers').get(),
-    db.collection('corridors').get(),
-    db.collection('enquiries').get(),
+  const [properties, developers, corridors, enquiries] = await Promise.all([
+    listProperties({ status: 'all' }),
+    listDevelopers(),
+    listCorridors(),
+    getDb().collection('enquiries').get().then((snap) => snap.docs.map((d) => d.data() as Enquiry)),
   ]);
 
-  // Parse through the converters so older records pick up defaults for newer fields.
-  const properties = propsSnap.docs.map((d) => propertyConverter.fromFirestore(d));
-  const enquiries = enqSnap.docs.map((d) => d.data() as Enquiry);
   const incomplete = properties
     .filter((p) => p.status !== 'archived')
     .map((p) => ({
@@ -69,8 +85,8 @@ export async function getDashboardCounts() {
     publishedProperties: published,
     draftProperties: drafts,
     archivedProperties: archived,
-    totalDevelopers: devsSnap.size,
-    totalCorridors: corrSnap.size,
+    totalDevelopers: developers.length,
+    totalCorridors: corridors.length,
     totalEnquiries: enquiries.length,
     newEnquiries,
     recentEnquiriesCount,
@@ -80,7 +96,9 @@ export async function getDashboardCounts() {
   };
 }
 
-export async function listProperties(filter?: { status?: string; segment?: string; corridorId?: string }): Promise<Property[]> {
+export const listProperties = (filter?: { status?: string; segment?: string; corridorId?: string }) => cached(`properties:${JSON.stringify(filter ?? {})}`, () => loadProperties(filter));
+
+async function loadProperties(filter?: { status?: string; segment?: string; corridorId?: string }): Promise<Property[]> {
   const db = getDb();
   let q: FirebaseFirestore.Query<Property> = db.collection('properties').withConverter(propertyConverter);
 
@@ -121,6 +139,7 @@ export async function isSlugAvailable(slug: string, exceptId?: string): Promise<
 }
 
 export async function saveProperty(draft: PropertyDraft, actor: string): Promise<Property> {
+  clearReadCache();
   const db = getDb();
   const docRef = db.collection('properties').doc(draft.id).withConverter(propertyConverter);
   const snap = await docRef.get();
@@ -178,11 +197,14 @@ export async function duplicateProperty(id: string, actor: string): Promise<Prop
 }
 
 export async function deleteProperty(id: string): Promise<void> {
+  clearReadCache();
   const db = getDb();
   await db.collection('properties').doc(id).delete();
 }
 
-export async function listDevelopers(): Promise<Developer[]> {
+export const listDevelopers = () => cached('developers', loadDevelopers);
+
+async function loadDevelopers(): Promise<Developer[]> {
   const db = getDb();
   const snap = await db.collection('developers').withConverter(developerConverter).get();
   return snap.docs.map((d) => d.data());
@@ -224,6 +246,7 @@ export async function createDeveloper(input: unknown): Promise<Developer> {
 }
 
 export async function saveDeveloper(input: unknown): Promise<Developer> {
+  clearReadCache();
   const db = getDb();
   const record = developerSchema.parse(input);
   await db.collection('developers').doc(record.id).withConverter(developerConverter).set(record);
@@ -241,7 +264,9 @@ export async function saveDeveloper(input: unknown): Promise<Developer> {
   return record;
 }
 
-export async function listCorridors(): Promise<Corridor[]> {
+export const listCorridors = () => cached('corridors', loadCorridors);
+
+async function loadCorridors(): Promise<Corridor[]> {
   const db = getDb();
   const snap = await db.collection('corridors').withConverter(corridorConverter).get();
   const results = snap.docs.map((d) => d.data());
@@ -258,6 +283,7 @@ export async function createCorridor(input: unknown): Promise<Corridor> {
 }
 
 export async function saveCorridor(input: unknown): Promise<Corridor> {
+  clearReadCache();
   const db = getDb();
   const record = corridorSchema.parse(input);
   await db.collection('corridors').doc(record.id).withConverter(corridorConverter).set(record);
@@ -275,7 +301,9 @@ export async function saveCorridor(input: unknown): Promise<Corridor> {
   return record;
 }
 
-export async function listOfficeHubs(): Promise<OfficeHub[]> {
+export const listOfficeHubs = () => cached('officeHubs', loadOfficeHubs);
+
+async function loadOfficeHubs(): Promise<OfficeHub[]> {
   const db = getDb();
   const snap = await db.collection('officeHubs').withConverter(officeHubConverter).get();
   return snap.docs.map((d) => d.data());
@@ -303,7 +331,9 @@ export async function updateEnquiry(id: string, patch: Partial<Pick<Enquiry, 'st
   return updated;
 }
 
-export async function getSettings(): Promise<SiteSettings> {
+export const getSettings = () => cached('settings', loadSettings);
+
+async function loadSettings(): Promise<SiteSettings> {
   const db = getDb();
   const doc = await db.collection('settings').doc('site').withConverter(settingsConverter).get();
   // A fresh database has no settings yet: start from the built-in Karnataka defaults.
@@ -313,6 +343,7 @@ export async function getSettings(): Promise<SiteSettings> {
 }
 
 export async function saveSettings(input: unknown): Promise<SiteSettings> {
+  clearReadCache();
   const db = getDb();
   const record = siteSettingsSchema.parse(input);
   await db.collection('settings').doc('site').withConverter(settingsConverter).set({ ...record, id: 'site' });
@@ -323,7 +354,9 @@ export async function saveSettings(input: unknown): Promise<SiteSettings> {
 
 export type BlogDraft = Omit<BlogPost, 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy' | 'publishedAt'> & { publishedAt?: string | null };
 
-export async function listBlogs(): Promise<BlogPost[]> {
+export const listBlogs = () => cached('blogs', loadBlogs);
+
+async function loadBlogs(): Promise<BlogPost[]> {
   const snap = await getDb().collection('blogs').withConverter(blogConverter).get();
   return snap.docs.map((d) => d.data()).sort((a, b) => (b.publishedAt ?? b.updatedAt).localeCompare(a.publishedAt ?? a.updatedAt));
 }
@@ -340,6 +373,7 @@ export async function isBlogSlugAvailable(slug: string, exceptId?: string): Prom
 
 /** Saves a post. The first publish stamps publishedAt; it is kept on later edits unless set explicitly. */
 export async function saveBlog(draft: BlogDraft, actor: string): Promise<BlogPost> {
+  clearReadCache();
   const ref = getDb().collection('blogs').doc(draft.id).withConverter(blogConverter);
   const snap = await ref.get();
   const existing = snap.exists ? snap.data()! : null;
@@ -357,5 +391,6 @@ export async function saveBlog(draft: BlogDraft, actor: string): Promise<BlogPos
 }
 
 export async function deleteBlog(id: string): Promise<void> {
+  clearReadCache();
   await getDb().collection('blogs').doc(id).delete();
 }

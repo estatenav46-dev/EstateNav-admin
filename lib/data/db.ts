@@ -32,6 +32,13 @@ export function getDb(): Firestore {
   }
 
   firestoreDb = getFirestore(adminApp);
+  // REST instead of gRPC: much faster cold starts on serverless and in dev (no realtime
+  // listeners are used, so nothing is lost).
+  try {
+    firestoreDb.settings({ preferRest: true });
+  } catch {
+    /* settings were already applied by another import of this module */
+  }
   return firestoreDb;
 }
 
