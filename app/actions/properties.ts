@@ -12,6 +12,7 @@ import {
   getPropertyById,
   isSlugAvailable,
   ensurePartnerRecord,
+  setPropertyHidden,
   type PropertyDraft,
 } from '@/lib/data/api';
 import { propertySchema, publishStatusSchema } from '@/lib/data/schemas';
@@ -141,5 +142,17 @@ export async function deletePropertyAction(id: string): Promise<Result<void>> {
     return { ok: true, data: undefined };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Failed to delete property.' };
+  }
+}
+
+/** Hides a listing from the website (or shows it again) without changing its status. */
+export async function setHiddenAction(id: string, hidden: boolean): Promise<Result<Property>> {
+  try {
+    const session = await requireAuth();
+    const data = await setPropertyHidden(id, hidden, session.email);
+    const refreshed = await refresh(data);
+    return { ok: true, data, warning: refreshed ? undefined : REFRESH_WARNING };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Could not update the listing.' };
   }
 }

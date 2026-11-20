@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth/session';
-import { createDeveloper, saveDeveloper } from '@/lib/data/api';
+import { createDeveloper, deleteDeveloper, saveDeveloper, setDeveloperHidden } from '@/lib/data/api';
 import { triggerWebsiteRevalidation } from '@/lib/data/revalidate';
 import type { Developer } from '@/lib/data/types';
 
@@ -46,5 +46,29 @@ export async function createDeveloperAction(input: unknown): Promise<Result<Deve
     return { ok: true, data };
   } catch (error) {
     return failure(error, 'Failed to create partner.');
+  }
+}
+
+/** Hides or shows a partner; hidden partners and all their listings leave the website. */
+export async function setDeveloperHiddenAction(id: string, hidden: boolean): Promise<Result<null>> {
+  try {
+    await requireAuth();
+    await setDeveloperHidden(z.string().min(1).parse(id), hidden);
+    await refresh();
+    return { ok: true, data: null };
+  } catch (error) {
+    return failure(error, 'Could not update the partner.');
+  }
+}
+
+/** Deletes a partner that has no listings. */
+export async function deleteDeveloperAction(id: string): Promise<Result<null>> {
+  try {
+    await requireAuth();
+    await deleteDeveloper(z.string().min(1).parse(id));
+    await refresh();
+    return { ok: true, data: null };
+  } catch (error) {
+    return failure(error, 'Could not delete the partner.');
   }
 }

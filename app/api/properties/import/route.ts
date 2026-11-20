@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { getSession } from '@/lib/auth/session';
-import { ensurePartnerRecord, getPropertyBySlug, listCorridors, listDevelopers, saveProperty, type PropertyDraft } from '@/lib/data/api';
-import { APPROVED_PARTNERS, approvedPartnerFor } from '@/lib/partners';
+import { getPropertyBySlug, listCorridors, listDevelopers, saveProperty, type PropertyDraft } from '@/lib/data/api';
+import { findPartner } from '@/lib/partners';
 import { triggerWebsiteRevalidation } from '@/lib/data/revalidate';
 import { emptyListingDetails } from '@/lib/data/defaults';
 import { lensSchema, nearbyCategorySchema, propertyTypeSchema } from '@/lib/data/schemas';
@@ -117,15 +117,8 @@ export async function POST(request: Request) {
         const title = value(row, 'title');
         if (!title) throw new Error('title is required');
         const developerKey = scopedDeveloperId || value(row, 'developer_id') || value(row, 'developer');
-        const partner = approvedPartnerFor(developerKey, developers);
-        if (!partner) throw new Error(`partner "${developerKey || 'missing'}" is not on the partner list (${APPROVED_PARTNERS.map((p) => p.name).join(', ')})`);
-        let developer = partner.developer;
-        if (!developer) {
-          const ensured = await ensurePartnerRecord(partner.id);
-          if (!ensured) throw new Error(`partner "${partner.name}" could not be set up`);
-          developer = ensured.developer;
-          developers.push(developer);
-        }
+        const developer = findPartner(developerKey, developers);
+        if (!developer) throw new Error(`partner "${developerKey || 'missing'}" was not found — add it on the Partners page or use one of: ${developers.map((d) => d.id).join(', ')}`);
         const corridorKey = value(row, 'corridor_id') || value(row, 'corridor') || value(row, 'area');
         const corridor = corridors.find((item) => item.id === corridorKey || item.name.toLowerCase() === corridorKey.toLowerCase());
         if (!corridor) throw new Error(`area "${corridorKey || 'missing'}" was not found — add it under Regions & areas first`);
@@ -288,6 +281,7 @@ export async function POST(request: Request) {
           documents: docs.length ? [...details.documents.filter((d) => !docs.some((n) => n.kind === d.kind)), ...docs] : details.documents,
           extraDetails: extras.length ? extras : details.extraDetails,
           offer: details.offer,
+          hidden: existing?.hidden ?? false,
           metrics: existing?.metrics || null,
           commute: existing?.commute || [],
           seo: {

@@ -29,6 +29,7 @@ export function blankDeveloper(name = ''): Developer {
     constructionTech: null,
     projectsDelivered: null,
     headquarters: null,
+    hidden: false,
     sources: [],
     website: null,
     logo: null,

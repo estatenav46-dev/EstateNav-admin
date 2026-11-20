@@ -147,6 +147,9 @@ export function SectionBasics({ isNew, siteUrl }: { isNew: boolean; siteUrl: str
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
             <input type="checkbox" {...register('featured')} className="h-4 w-4 rounded accent-[rgb(var(--accent))]" /> Feature on the home page
           </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium" title="Keeps the listing in the admin but leaves it off the website, whatever its status.">
+            <input type="checkbox" {...register('hidden')} className="h-4 w-4 rounded accent-[rgb(var(--accent))]" /> Hide from the website
+          </label>
           {featured && (
             <label className="flex items-center gap-2 text-xs text-ink-muted">
               Position

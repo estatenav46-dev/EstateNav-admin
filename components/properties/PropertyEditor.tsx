@@ -119,6 +119,7 @@ export function PropertyEditor({ initial, developers, corridors, hubs }: Props) 
   const router = useRouter();
   const isNew = !initial;
   const [areas, setAreas] = useState(corridors);
+  const [devs, setDevs] = useState(developers);
   const [currentStatus, setCurrentStatus] = useState<PublishStatus>(initial?.status ?? 'draft');
   const [message, setMessage] = useState<Message | null>(null);
   const [saving, setSaving] = useState<PublishStatus | null>(null);
@@ -258,7 +259,7 @@ export function PropertyEditor({ initial, developers, corridors, hubs }: Props) 
               ))}
             </div>
 
-            <SectionLocation developers={developers} corridors={areas} onCorridorCreated={(c) => setAreas((list) => [...list, c])} />
+            <SectionLocation developers={devs} corridors={areas} onCorridorCreated={(c) => setAreas((list) => [...list, c])} onDeveloperCreated={(d) => setDevs((list) => [...list, d])} />
             <SectionBasics isNew={isNew} siteUrl={SITE_URL} />
             <SectionFacts />
             <SectionUnits isNew={isNew} />

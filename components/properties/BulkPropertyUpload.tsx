@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, FileSpreadsheet, Loader2, Upload, XCircle } from 'lucide-react';
 import type { Developer } from '@/lib/data/types';
-import { resolvePartners } from '@/lib/partners';
+import { partnerOptions } from '@/lib/partners';
 
 type ImportResult = { created: number; updated: number; failed: number; errors: string[]; message?: string };
 
@@ -78,7 +78,7 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
           <label className="mb-1 block text-xs font-semibold">Partner developer {scope === 'partner' ? '*' : '(optional)'}</label>
           <select value={developerId} disabled={scope !== 'partner'} onChange={(event) => setDeveloperId(event.target.value)} className="field w-full text-sm disabled:opacity-50">
             <option value="">Select partner</option>
-            {resolvePartners(developers).map((partner) => <option key={partner.id} value={partner.id}>{partner.name}</option>)}
+            {partnerOptions(developers).map((partner) => <option key={partner.id} value={partner.id}>{partner.name}{partner.hidden ? ' (hidden)' : ''}</option>)}
           </select>
         </div>
         <div className="flex gap-2">

@@ -6,7 +6,8 @@ import type { Corridor, Developer } from '@/lib/data/types';
 import { Field } from '@/components/ui/form';
 import { Modal } from '@/components/ui/Modal';
 import { CorridorForm, ZONE_OPTIONS, blankCorridor } from '@/components/corridors/CorridorForm';
-import { resolvePartners } from '@/lib/partners';
+import { partnerOptions } from '@/lib/partners';
+import { DeveloperForm, blankDeveloper } from '@/components/developers/DeveloperForm';
 import { SectionCard, useDraft } from './ui';
 
 type Zone = NonNullable<Corridor['zone']>;
@@ -41,9 +42,10 @@ type Props = {
   developers: Developer[];
   corridors: Corridor[];
   onCorridorCreated: (corridor: Corridor) => void;
+  onDeveloperCreated: (developer: Developer) => void;
 };
 
-export function SectionLocation({ developers, corridors, onCorridorCreated }: Props) {
+export function SectionLocation({ developers, corridors, onCorridorCreated, onDeveloperCreated }: Props) {
   const { register, setValue, watch, formState } = useDraft();
   const { errors } = formState;
   const developerId = watch('developerId');
@@ -54,17 +56,15 @@ export function SectionLocation({ developers, corridors, onCorridorCreated }: Pr
   const current = corridors.find((c) => c.id === corridorId);
   const [region, setRegion] = useState<Zone | null>(current?.zone ?? null);
   const [newArea, setNewArea] = useState(false);
+  const [newPartner, setNewPartner] = useState(false);
   const [lat, setLat] = useState(geo ? String(geo.lat) : '');
   const [lng, setLng] = useState(geo ? String(geo.lng) : '');
   const [mapsLink, setMapsLink] = useState('');
   const [mapsProblem, setMapsProblem] = useState('');
 
-  // Only the approved partners are offered; a listing saved earlier with another developer keeps it.
-  const partners = useMemo(() => resolvePartners(developers), [developers]);
-  const legacy = useMemo(() => {
-    if (!developerId || partners.some((p) => p.id === developerId)) return null;
-    return developers.find((d) => d.id === developerId) ?? null;
-  }, [developerId, developers, partners]);
+  // Every partner on the Partners page is offered; hidden ones are marked.
+  const partners = useMemo(() => partnerOptions(developers), [developers]);
+  const chosenHidden = partners.find((p) => p.id === developerId)?.hidden ?? false;
 
   const counts = useMemo(() => {
     const out: Partial<Record<Zone, number>> = {};
@@ -76,7 +76,7 @@ export function SectionLocation({ developers, corridors, onCorridorCreated }: Pr
 
   // Copied names follow the chosen partner and area (an ID no longer in the list keeps its stored name).
   useEffect(() => {
-    const name = partners.find((p) => p.id === developerId)?.name ?? developers.find((d) => d.id === developerId)?.name;
+    const name = partners.find((p) => p.id === developerId)?.name;
     if (name || !developerId) setValue('developerName', name ?? '', { shouldDirty: false });
   }, [developerId, developers, partners, setValue]);
   useEffect(() => {
@@ -183,21 +183,44 @@ export function SectionLocation({ developers, corridors, onCorridorCreated }: Pr
       </Step>
 
       <Step n={4} title="Partner developer">
-        <select {...register('developerId')} className="field sm:max-w-md">
-          <option value="">Select partner…</option>
-          {partners.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-          {legacy && <option value={legacy.id}>{legacy.name} (not on partner list)</option>}
-        </select>
+        <div className="flex gap-2 sm:max-w-md">
+          <select {...register('developerId')} className="field flex-1">
+            <option value="">Select partner…</option>
+            {partners.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {p.hidden ? ' (hidden on website)' : ''}
+              </option>
+            ))}
+          </select>
+          <button type="button" onClick={() => setNewPartner(true)} className="btn-secondary shrink-0 text-xs" title="Add a new partner">
+            <Plus className="h-3.5 w-3.5" /> New
+          </button>
+        </div>
         {errors.developerId ? (
           <p className="text-2xs text-danger">Choose the partner developer.</p>
         ) : (
-          <p className="text-2xs text-ink-muted">{legacy ? `“${legacy.name}” is not on the partner list; choose a listed partner if it applies.` : 'Profiles (about, track record) are edited on the Partners page.'}</p>
+          <p className={`text-2xs ${chosenHidden ? 'text-amber-700' : 'text-ink-muted'}`}>
+            {chosenHidden ? 'This partner is hidden, so this listing will not show on the website until the partner is shown again.' : 'Profiles, logos and visibility are managed on the Partners page.'}
+          </p>
         )}
       </Step>
+
+      <Modal open={newPartner} onClose={() => setNewPartner(false)} title="Add a partner" description="Saved straight away and selected for this listing." width="lg">
+        {newPartner && (
+          <DeveloperForm
+            initial={blankDeveloper()}
+            mode="create"
+            onCancel={() => setNewPartner(false)}
+            onSaved={(dev) => {
+              onDeveloperCreated(dev);
+              setValue('developerId', dev.id, { shouldDirty: true, shouldValidate: true });
+              setValue('developerName', dev.name, { shouldDirty: true });
+              setNewPartner(false);
+            }}
+          />
+        )}
+      </Modal>
 
       <Modal open={newArea} onClose={() => setNewArea(false)} title={`Add an area${regionLabel ? ` in ${regionLabel}` : ''}`} description="The new area is saved straight away and selected for this listing." width="lg">
         {newArea && (

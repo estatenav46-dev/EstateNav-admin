@@ -190,6 +190,8 @@ export const propertySchema = z.object({
   documents: z.array(propertyDocumentSchema).default([]),
   extraDetails: z.array(extraDetailSchema).default([]),
   offer: offerSchema.nullable().default(null),
+  /** Kept in the admin but left off the website, whatever its status. */
+  hidden: z.boolean().default(false),
 
   metrics: z.object({ grossYield: z.number().positive() }).merge(sourcedSchema).nullable(),
   commute: z.array(
@@ -217,6 +219,8 @@ export const developerSchema = z.object({
   constructionTech: z.string().nullable(),
   projectsDelivered: z.number().int().positive().nullable().default(null),
   headquarters: z.string().max(120).nullable().default(null),
+  /** Hidden partners and all their listings are left off the website. */
+  hidden: z.boolean().default(false),
   sources: z.array(z.object({ field: developerFactField, label: z.string().min(1), url: z.string().url().nullable(), asOf: isoDate })),
   website: z.string().url().nullable(),
   logo: imageRefSchema.nullable(),

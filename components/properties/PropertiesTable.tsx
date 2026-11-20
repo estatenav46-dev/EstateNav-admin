@@ -4,9 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, Copy, Edit, ExternalLink, FileText, Images, Layers, Plus, Search, Star, Trash2, X } from 'lucide-react';
+import { AlertCircle, Copy, Edit, ExternalLink, Eye, EyeOff, FileText, Images, Layers, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import type { Corridor, Developer, Property, PublishStatus } from '@/lib/data/types';
-import { setStatusAction, setFeaturedAction, duplicatePropertyAction, deletePropertyAction } from '@/app/actions/properties';
+import { setStatusAction, setFeaturedAction, duplicatePropertyAction, deletePropertyAction, setHiddenAction } from '@/app/actions/properties';
 import { PROPERTY_TYPE_LABEL } from '@/lib/listingMeta';
 import { ZONE_OPTIONS, zoneLabel } from '@/components/corridors/CorridorForm';
 
@@ -45,6 +45,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
   const zoneOf = useMemo(() => new Map(corridors.map((c) => [c.id, c.zone ?? null])), [corridors]);
   const areaOptions = filters.region === 'all' ? corridors : corridors.filter((c) => c.zone === filters.region);
   const regionCounts = ZONE_OPTIONS.map((z) => ({ id: z.id as string, label: z.label, count: properties.filter((p) => zoneOf.get(p.corridorId) === z.id).length })).filter((r) => r.count > 0);
+  const hiddenDevs = useMemo(() => new Set(developers.filter((d) => d.hidden).map((d) => d.id)), [developers]);
   const filtered = properties.filter((p) => {
     if (filters.status !== 'all' && p.status !== filters.status) return false;
     if (filters.corridor !== 'all' && p.corridorId !== filters.corridor) return false;
@@ -169,7 +170,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                 filtered.map((p) => {
                   const plans = p.configurations.filter((c) => c.floorPlanImageId).length;
                   return (
-                    <tr key={p.id} className="transition-colors hover:bg-surface-2/40">
+                    <tr key={p.id} className={`transition-colors hover:bg-surface-2/40 ${p.hidden || hiddenDevs.has(p.developerId) ? 'opacity-60' : ''}`}>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-3">
                           <div className="relative h-10 w-14 shrink-0 overflow-hidden rounded-md bg-surface-2">
@@ -182,6 +183,11 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                             <span className="block truncate text-2xs text-ink-muted">
                               {PROPERTY_TYPE_LABEL[p.propertyType]} · {p.locality}
                             </span>
+                            {(p.hidden || hiddenDevs.has(p.developerId)) && (
+                              <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-ink/10 px-1.5 py-px text-[10px] font-semibold uppercase text-ink-muted">
+                                <EyeOff className="h-3 w-3" /> {p.hidden ? 'Hidden' : 'Partner hidden'}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -231,6 +237,15 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                               <ExternalLink className="h-3.5 w-3.5" /> View
                             </a>
                           )}
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => run(() => setHiddenAction(p.id, !p.hidden))}
+                            className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-2xs font-semibold text-ink-muted hover:border-line-strong hover:text-ink"
+                            title={p.hidden ? 'Show this listing on the website again' : 'Hide this listing from the website (keeps its status)'}
+                          >
+                            {p.hidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />} {p.hidden ? 'Show' : 'Hide'}
+                          </button>
                           <button type="button" disabled={isPending} onClick={() => confirm(`Create a draft copy of “${p.title}”?`) && run(() => duplicatePropertyAction(p.id))} className="rounded p-1.5 text-ink-muted hover:bg-surface-2 hover:text-ink" title="Duplicate as draft">
                             <Copy className="h-4 w-4" />
                           </button>

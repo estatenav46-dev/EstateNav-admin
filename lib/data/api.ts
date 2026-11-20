@@ -204,10 +204,50 @@ export async function deleteProperty(id: string): Promise<void> {
 
 export const listDevelopers = () => cached('developers', loadDevelopers);
 
-async function loadDevelopers(): Promise<Developer[]> {
+/** Writes the starting partners to Firestore once; a marker stops deleted ones coming back. */
+async function seedStartingPartners(existing: Developer[]): Promise<boolean> {
   const db = getDb();
-  const snap = await db.collection('developers').withConverter(developerConverter).get();
+  const meta = db.collection('settings').doc('admin');
+  const snap = await meta.get();
+  if (snap.exists && snap.data()?.partnersSeeded) return false;
+  const missing = APPROVED_PARTNERS.filter((p) => !existing.some((d) => d.id === p.id || p.match.test(d.name) || p.match.test(d.legalName)));
+  const batch = db.batch();
+  for (const p of missing) {
+    const record = developerSchema.parse({ id: p.id, name: p.name, legalName: p.name, about: '', yearsActive: null, sqftDelivered: null, constructionTech: null, sources: [], website: null, logo: null });
+    batch.set(db.collection('developers').doc(p.id).withConverter(developerConverter), record);
+  }
+  batch.set(meta, { partnersSeeded: true, partnersSeededAt: new Date().toISOString() }, { merge: true });
+  await batch.commit();
+  return missing.length > 0;
+}
+
+async function readDevelopers(): Promise<Developer[]> {
+  const snap = await getDb().collection('developers').withConverter(developerConverter).get();
   return snap.docs.map((d) => d.data());
+}
+
+async function loadDevelopers(): Promise<Developer[]> {
+  const list = await readDevelopers();
+  return (await seedStartingPartners(list)) ? readDevelopers() : list;
+}
+
+/** Deletes a partner that no listing uses; otherwise explains what to do instead. */
+export async function deleteDeveloper(id: string): Promise<void> {
+  clearReadCache();
+  const used = await getDb().collection('properties').where('developerId', '==', id).get();
+  if (!used.empty) throw new Error(`This partner still has ${used.size} listing${used.size === 1 ? '' : 's'}. Hide the partner instead, or move or delete those listings first.`);
+  await getDb().collection('developers').doc(id).delete();
+}
+
+export async function setDeveloperHidden(id: string, hidden: boolean): Promise<void> {
+  clearReadCache();
+  await getDb().collection('developers').doc(id).update({ hidden });
+}
+
+export async function setPropertyHidden(id: string, hidden: boolean, actor: string): Promise<Property> {
+  const property = await getPropertyById(id);
+  if (!property) throw new Error(`Property ${id} not found`);
+  return saveProperty({ ...property, hidden }, actor);
 }
 
 /**
@@ -230,6 +270,7 @@ export async function ensurePartnerRecord(id: string): Promise<{ developer: Deve
     constructionTech: null,
     projectsDelivered: null,
     headquarters: null,
+    hidden: false,
     sources: [],
     website: null,
     logo: null,

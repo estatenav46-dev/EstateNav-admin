@@ -1,9 +1,9 @@
 import type { Developer } from './data/types';
 
 /**
- * The partners EstateNav lists for. Only these appear in the property editor's partner list.
- * A partner's Firestore record is created the first time it is used (or set up on the
- * Partners page); an existing record is matched by ID or by name, so older data is reused.
+ * The partners EstateNav started with. They are written to Firestore once (see seeding in
+ * lib/data/api.ts); after that the partner list is whatever is in the database, so partners
+ * can be added, hidden or deleted on the Partners page.
  */
 export const APPROVED_PARTNERS: { id: string; name: string; match: RegExp }[] = [
   { id: 'abhee-ventures', name: 'Abhee Ventures', match: /\babhee\b/i },
@@ -24,35 +24,19 @@ export const APPROVED_PARTNERS: { id: string; name: string; match: RegExp }[] = 
   { id: 'century-real-estate', name: 'Century Real Estate', match: /\bcentury\b/i },
 ];
 
-export type ResolvedPartner = {
-  /** The ID listings store: the existing record's ID when one matches, otherwise the default. */
-  id: string;
-  name: string;
-  /** The Firestore record, or null until the partner is first used. */
-  developer: Developer | null;
-};
-
-function findRecord(partner: (typeof APPROVED_PARTNERS)[number], developers: Developer[]): Developer | null {
-  return developers.find((d) => d.id === partner.id) ?? developers.find((d) => partner.match.test(d.name) || partner.match.test(d.legalName)) ?? null;
+/** Every partner record for dropdowns: visible ones first, then alphabetical. */
+export function partnerOptions(developers: Developer[]): { id: string; name: string; hidden: boolean }[] {
+  return [...developers]
+    .sort((a, b) => Number(a.hidden) - Number(b.hidden) || a.name.localeCompare(b.name))
+    .map((d) => ({ id: d.id, name: d.name, hidden: d.hidden }));
 }
 
-/** The approved partners in list order, each paired with its database record if there is one. */
-export function resolvePartners(developers: Developer[]): ResolvedPartner[] {
-  return APPROVED_PARTNERS.map((p) => {
-    const developer = findRecord(p, developers);
-    return { id: developer?.id ?? p.id, name: developer?.name ?? p.name, developer };
-  });
-}
-
-/** Records in the database that are not one of the approved partners (kept for older listings). */
-export function otherDevelopers(developers: Developer[]): Developer[] {
-  const used = new Set(resolvePartners(developers).map((p) => p.developer?.id).filter(Boolean));
-  return developers.filter((d) => !used.has(d.id));
-}
-
-/** Finds an approved partner by stored ID, default ID, or a name typed in a spreadsheet. */
-export function approvedPartnerFor(key: string, developers: Developer[]): ResolvedPartner | null {
+/** Finds a partner by ID, exact name, or a known brand name typed in a spreadsheet (e.g. "Sobha"). */
+export function findPartner(key: string, developers: Developer[]): Developer | null {
   const k = key.trim().toLowerCase();
   if (!k) return null;
-  return resolvePartners(developers).find((p, i) => p.id === k || APPROVED_PARTNERS[i].id === k || p.name.toLowerCase() === k || APPROVED_PARTNERS[i].match.test(key)) ?? null;
+  const direct = developers.find((d) => d.id === k) ?? developers.find((d) => d.name.toLowerCase() === k || d.legalName.toLowerCase() === k);
+  if (direct) return direct;
+  const brand = APPROVED_PARTNERS.find((p) => p.id === k || p.match.test(key));
+  return brand ? developers.find((d) => d.id === brand.id || brand.match.test(d.name) || brand.match.test(d.legalName)) ?? null : null;
 }

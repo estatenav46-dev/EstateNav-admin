@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs';
 import { getSession } from '@/lib/auth/session';
 import { listCorridors, listDevelopers } from '@/lib/data/api';
 import { nearbyCategorySchema, propertyTypeSchema } from '@/lib/data/schemas';
-import { resolvePartners } from '@/lib/partners';
+import { partnerOptions } from '@/lib/partners';
 
 export const runtime = 'nodejs';
 
@@ -95,7 +95,7 @@ export async function GET() {
   const ids = workbook.addWorksheet('Partners & areas');
   ids.addRow(['Partner ID', 'Partner name', '', 'Area ID', 'Area name', 'Region']);
   ids.getRow(1).font = { bold: true };
-  const partners = resolvePartners(developers);
+  const partners = partnerOptions(developers);
   const rows = Math.max(partners.length, corridors.length);
   for (let i = 0; i < rows; i += 1) {
     const d = partners[i];

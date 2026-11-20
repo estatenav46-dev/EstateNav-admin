@@ -1,6 +1,6 @@
 import type { ProjectFacts, Property, SiteSettings } from './types';
 
-export type ListingDetailKey = 'priceOnRequest' | 'priceNote' | 'facts' | 'specifications' | 'nearby' | 'documents' | 'extraDetails' | 'offer';
+export type ListingDetailKey = 'priceOnRequest' | 'priceNote' | 'facts' | 'specifications' | 'nearby' | 'documents' | 'extraDetails' | 'offer' | 'hidden';
 
 export const EMPTY_FACTS: ProjectFacts = {
   landAcres: null,
@@ -23,6 +23,7 @@ export function emptyListingDetails(): Pick<Property, ListingDetailKey> {
     documents: [],
     extraDetails: [],
     offer: null,
+    hidden: false,
   };
 }
 
