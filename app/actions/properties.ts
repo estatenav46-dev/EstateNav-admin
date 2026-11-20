@@ -104,8 +104,8 @@ export async function setStatusAction(id: string, status: PublishStatus): Promis
       }
     }
     const data = await setPropertyStatus(id, validated, session.email);
-    await refresh(data);
-    return { ok: true, data };
+    const refreshed = await refresh(data);
+    return { ok: true, data, warning: refreshed ? undefined : REFRESH_WARNING };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Failed to update status.' };
   }
@@ -115,8 +115,8 @@ export async function setFeaturedAction(id: string, featured: boolean): Promise<
   try {
     const session = await requireAuth();
     const data = await setPropertyFeatured(id, featured, session.email);
-    await refresh(data);
-    return { ok: true, data };
+    const refreshed = await refresh(data);
+    return { ok: true, data, warning: refreshed ? undefined : REFRESH_WARNING };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Failed to update featured flag.' };
   }
@@ -138,8 +138,8 @@ export async function deletePropertyAction(id: string): Promise<Result<void>> {
     await requireAuth();
     const existing = await getPropertyById(id);
     await deleteProperty(id);
-    await refresh(existing);
-    return { ok: true, data: undefined };
+    const refreshed = await refresh(existing);
+    return { ok: true, data: undefined, warning: refreshed ? undefined : REFRESH_WARNING.replace('Saved.', 'Deleted.') };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Failed to delete property.' };
   }

@@ -59,11 +59,12 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
 
   const paged = usePaged(filtered, JSON.stringify(filters), 'admin.properties.pageSize');
 
-  const run = (fn: () => Promise<{ ok: boolean; message?: string }>) =>
+  const run = (fn: () => Promise<{ ok: boolean; message?: string; warning?: string }>) =>
     startTransition(async () => {
       setProblem(null);
       const res = await fn();
       if (!res.ok) setProblem(res.message ?? 'That did not work.');
+      else if (res.warning) setProblem(res.warning);
       router.refresh();
     });
 
