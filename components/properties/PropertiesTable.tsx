@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useMemo, useState, useTransition } from 'react';
+import { Pager, usePaged } from '@/components/ui/Pager';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Copy, Edit, ExternalLink, Eye, EyeOff, FileText, Images, Layers, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import type { Corridor, Developer, Property, PublishStatus } from '@/lib/data/types';
@@ -55,6 +56,8 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
     const q = filters.q.trim().toLowerCase();
     return !q || `${p.title} ${p.developerName} ${p.locality} ${p.corridorName} ${p.slug}`.toLowerCase().includes(q);
   });
+
+  const paged = usePaged(filtered, JSON.stringify(filters), 'admin.properties.pageSize');
 
   const run = (fn: () => Promise<{ ok: boolean; message?: string }>) =>
     startTransition(async () => {
@@ -167,7 +170,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                   </td>
                 </tr>
               ) : (
-                filtered.map((p) => {
+                paged.rows.map((p) => {
                   const plans = p.configurations.filter((c) => c.floorPlanImageId).length;
                   return (
                     <tr key={p.id} className={`transition-colors hover:bg-surface-2/40 ${p.hidden || hiddenDevs.has(p.developerId) ? 'opacity-60' : ''}`}>
@@ -262,6 +265,8 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
           </table>
         </div>
       </div>
+
+      <Pager {...paged} noun="listings" />
 
       <Link href="/properties/new" className="btn-primary w-full sm:hidden">
         <Plus className="h-4 w-4" /> Post new property

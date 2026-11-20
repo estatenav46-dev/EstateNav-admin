@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Pager, usePaged } from '@/components/ui/Pager';
 import { useRouter } from 'next/navigation';
 import { Enquiry } from '@/lib/data/types';
 import { updateEnquiryAction } from '@/app/actions/enquiries';
@@ -44,6 +45,8 @@ export function EnquiriesInbox({ initialEnquiries, initialStatus = 'all' }: Prop
       (enq.propertyTitle && enq.propertyTitle.toLowerCase().includes(term))
     );
   });
+
+  const paged = usePaged(filtered, `${filterStatus}|${search}`, 'admin.enquiries.pageSize');
 
   const handleStatusChange = async (id: string, status: Enquiry['status']) => {
     setUpdatingId(id);
@@ -114,7 +117,7 @@ export function EnquiriesInbox({ initialEnquiries, initialStatus = 'all' }: Prop
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((enq) => {
+          {paged.rows.map((enq) => {
             const isExpanded = expandedId === enq.id;
             return (
               <div key={enq.id} className="panel overflow-hidden transition-all border-line">
@@ -265,6 +268,7 @@ export function EnquiriesInbox({ initialEnquiries, initialStatus = 'all' }: Prop
               </div>
             );
           })}
+          <Pager {...paged} noun="enquiries" />
         </div>
       )}
     </div>

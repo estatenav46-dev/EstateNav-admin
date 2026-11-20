@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
+import { Pager, usePaged } from '@/components/ui/Pager';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Edit, ExternalLink, FileText, Search, Star, Trash2 } from 'lucide-react';
 import type { BlogPost } from '@/lib/data/types';
@@ -21,6 +22,8 @@ export function BlogList({ posts }: { posts: BlogPost[] }) {
     () => posts.filter((p) => (status === 'all' || p.status === status) && `${p.title} ${p.category} ${p.tags.join(' ')}`.toLowerCase().includes(q.trim().toLowerCase())),
     [posts, q, status],
   );
+
+  const paged = usePaged(shown, `${status}|${q}`, 'admin.blogs.pageSize');
 
   const run = (fn: () => Promise<{ ok: boolean; message?: string }>) =>
     start(async () => {
@@ -59,7 +62,7 @@ export function BlogList({ posts }: { posts: BlogPost[] }) {
         </div>
       ) : (
         <ul className="panel divide-y divide-line overflow-hidden">
-          {shown.map((p) => (
+          {paged.rows.map((p) => (
             <li key={p.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
               <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg bg-surface-2">
                 {p.cover ? <Image src={p.cover.url} alt="" fill sizes="112px" className="object-cover" /> : <span className="flex h-full items-center justify-center text-2xs text-ink-muted">No cover</span>}
@@ -111,6 +114,7 @@ export function BlogList({ posts }: { posts: BlogPost[] }) {
           ))}
         </ul>
       )}
+      <Pager {...paged} noun="posts" />
     </div>
   );
 }
