@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, FileSpreadsheet, Loader2, Upload, XCircle } from 'lucide-react';
 import type { Developer } from '@/lib/data/types';
@@ -8,7 +8,7 @@ import { resolvePartners } from '@/lib/partners';
 
 type ImportResult = { created: number; updated: number; failed: number; errors: string[]; message?: string };
 
-export function BulkPropertyUpload({ developers }: { developers: Developer[] }) {
+export function BulkPropertyUpload({ developers, defaultOpen = false }: { developers: Developer[]; defaultOpen?: boolean }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [scope, setScope] = useState<'all' | 'partner'>('all');
@@ -17,6 +17,10 @@ export function BulkPropertyUpload({ developers }: { developers: Developer[] }) 
   const [result, setResult] = useState<ImportResult | null>(null);
   const [uploading, setUploading] = useState(false);
   const [copyImages, setCopyImages] = useState(true);
+  const [open, setOpen] = useState(defaultOpen);
+  useEffect(() => {
+    if (window.location.hash === '#bulk-upload') setOpen(true);
+  }, []);
 
   const upload = async () => {
     if (!file || (scope === 'partner' && !developerId)) return;
@@ -40,21 +44,29 @@ export function BulkPropertyUpload({ developers }: { developers: Developer[] }) 
   };
 
   return (
-    <section id="bulk-upload" className="panel scroll-mt-24 p-5 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
-            <h2 className="text-base font-semibold text-ink">Bulk property upload</h2>
+    <section id="bulk-upload" className="scroll-mt-24 rounded-xl border border-line bg-surface shadow-sm">
+      <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-700">
+            <FileSpreadsheet className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-ink">Bulk upload from Excel</h2>
+            <p className="truncate text-2xs text-ink-muted">Add or update many listings at once. Rows with the same web address update the existing listing.</p>
           </div>
-          <p className="mt-1 max-w-2xl text-xs text-ink-muted">Import many listings from Excel. Rows with the same web address (slug) update the existing listing; empty cells keep what is already saved. Start new rows as drafts, then finish them in the editor (floor plans per unit, documents, nearby places).</p>
         </div>
-        <a href="/api/properties/template" className="btn-secondary shrink-0 px-3 text-xs">
-          <Download className="h-3.5 w-3.5" /> Download template
-        </a>
+        <div className="flex shrink-0 gap-2">
+          <a href="/api/properties/template" className="btn-secondary text-xs">
+            <Download className="h-3.5 w-3.5" /> Template
+          </a>
+          <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className={open ? 'btn-secondary text-xs' : 'btn-primary text-xs'}>
+            {open ? 'Close' : (<><Upload className="h-3.5 w-3.5" /> Upload Excel</>)}
+          </button>
+        </div>
       </div>
-
-      <div className="mt-5 grid gap-4 border-t border-line pt-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+      {open && (
+      <div className="border-t border-line p-3 sm:px-4">
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
         <div>
           <label className="mb-1 block text-xs font-semibold">Upload scope</label>
           <select value={scope} onChange={(event) => setScope(event.target.value as 'all' | 'partner')} className="field w-full text-sm">
@@ -94,6 +106,8 @@ export function BulkPropertyUpload({ developers }: { developers: Developer[] }) 
         <div className={`mt-4 rounded-xl border p-4 text-xs ${result.message ? 'border-danger/30 bg-danger/10 text-danger' : result.failed ? 'border-amber-400/40 bg-amber-50 text-amber-900' : 'border-emerald-400/40 bg-emerald-50 text-emerald-900'}`}>
           {result.message ? <div className="flex items-center gap-2"><XCircle className="h-4 w-4" />{result.message}</div> : <><p className="font-semibold">Import complete: {result.created} created, {result.updated} updated, {result.failed} skipped.</p>{result.errors.length > 0 && <ul className="mt-2 list-disc space-y-1 pl-4">{result.errors.map((error) => <li key={error}>{error}</li>)}</ul>}</>}
         </div>
+      )}
+      </div>
       )}
     </section>
   );

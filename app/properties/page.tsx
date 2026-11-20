@@ -28,7 +28,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: R
 
   return (
     <AdminShell userEmail={session.email}>
-      <div className="space-y-6 md:space-y-7">
+      <div className="space-y-4">
         <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface px-4 py-4 shadow-sm sm:px-5 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Catalogue</p>
@@ -41,8 +41,8 @@ export default async function PropertiesPage({ searchParams }: { searchParams: R
           </Link>
         </div>
 
-        <PropertiesTable properties={properties} corridors={corridors} developers={developers} initialFilters={initialFilters} />
         <BulkPropertyUpload developers={developers} />
+        <PropertiesTable properties={properties} corridors={corridors} developers={developers} initialFilters={initialFilters} />
       </div>
     </AdminShell>
   );

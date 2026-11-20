@@ -44,6 +44,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
 
   const zoneOf = useMemo(() => new Map(corridors.map((c) => [c.id, c.zone ?? null])), [corridors]);
   const areaOptions = filters.region === 'all' ? corridors : corridors.filter((c) => c.zone === filters.region);
+  const regionCounts = ZONE_OPTIONS.map((z) => ({ id: z.id as string, label: z.label, count: properties.filter((p) => zoneOf.get(p.corridorId) === z.id).length })).filter((r) => r.count > 0);
   const filtered = properties.filter((p) => {
     if (filters.status !== 'all' && p.status !== filters.status) return false;
     if (filters.corridor !== 'all' && p.corridorId !== filters.corridor) return false;
@@ -66,6 +67,17 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
 
   return (
     <div className="space-y-4">
+      <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-0.5" role="group" aria-label="Region">
+        <button type="button" onClick={() => set({ region: 'all', corridor: 'all' })} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${filters.region === 'all' ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink'}`}>
+          All properties <span className="ml-0.5 font-mono opacity-70">{properties.length}</span>
+        </button>
+        {regionCounts.map((r) => (
+          <button key={r.id} type="button" onClick={() => set({ region: r.id, corridor: 'all' })} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${filters.region === r.id ? 'border-accent bg-accent text-white' : 'border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink'}`}>
+            {r.label.replace(' Bengaluru', '')} <span className="ml-0.5 font-mono opacity-70">{r.count}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-2.5 lg:flex-row lg:items-center">
         <div className="flex shrink-0 gap-1 rounded-lg bg-surface-2 p-0.5">
           {(['all', 'published', 'draft', 'archived'] as const).map((s) => (
@@ -211,12 +223,12 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Link href={`/properties/${p.id}`} className="rounded p-1.5 text-ink-muted hover:bg-surface-2 hover:text-ink" title="Edit listing">
-                            <Edit className="h-4 w-4" />
+                          <Link href={`/properties/${p.id}`} className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-2xs font-semibold text-ink hover:border-accent hover:text-accent-ink" title="Edit listing">
+                            <Edit className="h-3.5 w-3.5" /> Edit
                           </Link>
                           {p.status === 'published' && (
-                            <a href={`${SITE_URL}/properties/${p.slug}`} target="_blank" rel="noopener noreferrer" className="rounded p-1.5 text-ink-muted hover:bg-surface-2 hover:text-ink" title="View on website">
-                              <ExternalLink className="h-4 w-4" />
+                            <a href={`${SITE_URL}/properties/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-2xs font-semibold text-ink-muted hover:border-line-strong hover:text-ink" title="View on website">
+                              <ExternalLink className="h-3.5 w-3.5" /> View
                             </a>
                           )}
                           <button type="button" disabled={isPending} onClick={() => confirm(`Create a draft copy of “${p.title}”?`) && run(() => duplicatePropertyAction(p.id))} className="rounded p-1.5 text-ink-muted hover:bg-surface-2 hover:text-ink" title="Duplicate as draft">

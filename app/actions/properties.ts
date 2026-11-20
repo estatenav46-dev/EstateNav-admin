@@ -15,10 +15,10 @@ import {
   type PropertyDraft,
 } from '@/lib/data/api';
 import { propertySchema, publishStatusSchema } from '@/lib/data/schemas';
-import { triggerWebsiteRevalidation } from '@/lib/data/revalidate';
+import { REFRESH_WARNING, triggerWebsiteRevalidation } from '@/lib/data/revalidate';
 import type { Property, PublishStatus } from '@/lib/data/types';
 
-type Result<T> = { ok: true; data: T } | { ok: false; message: string; issues?: string[] };
+type Result<T> = { ok: true; data: T; warning?: string } | { ok: false; message: string; issues?: string[] };
 
 const draftSchema = propertySchema.omit({
   createdAt: true,
@@ -29,11 +29,11 @@ const draftSchema = propertySchema.omit({
 });
 
 /** Refreshes the admin lists and purges the public site's cached listings. */
-async function refresh(property?: { id: string; slug: string } | null) {
+async function refresh(property?: { id: string; slug: string } | null): Promise<boolean> {
   revalidatePath('/properties');
   revalidatePath('/');
   if (property) revalidatePath(`/properties/${property.id}`);
-  await triggerWebsiteRevalidation('properties', property ? `/properties/${property.slug}` : '/');
+  return triggerWebsiteRevalidation('properties', property ? `/properties/${property.slug}` : '/');
 }
 
 function zodResult(error: z.ZodError): Result<never> {
@@ -49,7 +49,10 @@ function normalise(draft: z.infer<typeof draftSchema>): PropertyDraft {
   const bhkOptions = Array.from(new Set(draft.configurations.map((c) => c.bhk).filter((b): b is number => b != null && b > 0))).sort((a, b) => a - b);
   const documents = draft.documents.map((d) => ({ ...d, label: d.label.trim() }));
   const offer = draft.offer && draft.offer.text.trim() ? draft.offer : null;
-  return { ...draft, bhkOptions, documents, offer };
+  // The cover must be one of the gallery photos; a removed cover falls back to the first photo.
+  const { gallery, cover } = draft.media;
+  const media = { ...draft.media, cover: gallery.length ? gallery.find((img) => img.id === cover.id) ?? gallery[0] : cover };
+  return { ...draft, bhkOptions, documents, offer, media };
 }
 
 export async function savePropertyAction(input: unknown, status: PublishStatus): Promise<Result<Property>> {
@@ -74,10 +77,10 @@ export async function savePropertyAction(input: unknown, status: PublishStatus):
 
     const previous = await getPropertyById(draft.id);
     const data = await saveProperty(draft, session.email);
-    await refresh(data);
+    const refreshed = await refresh(data);
     // A changed slug leaves the old public page cached; purge it too.
     if (previous && previous.slug !== data.slug) await triggerWebsiteRevalidation(undefined, `/properties/${previous.slug}`);
-    return { ok: true, data };
+    return { ok: true, data, warning: refreshed ? undefined : REFRESH_WARNING };
   } catch (error) {
     if (error instanceof z.ZodError) return zodResult(error);
     return { ok: false, message: error instanceof Error ? error.message : 'Failed to save property.' };

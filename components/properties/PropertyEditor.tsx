@@ -160,7 +160,7 @@ export function PropertyEditor({ initial, developers, corridors, hubs }: Props) 
         reset(draftFromProperty(res.data));
         setMessage({
           tone: 'ok',
-          title: res.data.status === 'published' ? 'Saved and live on the website (it refreshes within a minute).' : res.data.status === 'draft' ? 'Draft saved. It is not visible on the website yet.' : 'Saved as archived.',
+          title: res.warning ?? (res.data.status === 'published' ? 'Saved and live on the website.' : res.data.status === 'draft' ? 'Draft saved. It is not visible on the website yet.' : 'Saved as archived.'),
         });
         if (isNew) router.replace(`/properties/${res.data.id}`);
         router.refresh();
