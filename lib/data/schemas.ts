@@ -30,6 +30,8 @@ export const publishStatusSchema = z.enum(['draft', 'published', 'archived']);
 export const possessionStatusSchema = z.enum(['ready', 'under-construction', 'pre-launch']);
 export const lensSchema = z.enum(['first-home', 'upgrading', 'nri', 'senior', 'investor']);
 export const unitAvailabilitySchema = z.enum(['available', 'limited', 'sold-out']);
+/** What a unit row is. Lets one project mix apartments, studios, row houses, villas or plots. */
+export const unitKindSchema = z.enum(['apartment', 'studio', 'duplex', 'penthouse', 'villa', 'row-house', 'villament', 'independent-house', 'plot', 'office', 'retail']);
 
 // For plotted listings the carpet fields hold the plot area. The optional fields were added
 // later; older records simply do not have them.
@@ -50,6 +52,22 @@ export const configurationSchema = z.object({
   availability: unitAvailabilitySchema.optional(),
   /** Short note such as "with study" or "duplex". */
   notes: z.string().max(200).optional(),
+  // ---- Added with the structured Excel import (all optional; older records lack them) ----
+  unitKind: unitKindSchema.optional(),
+  balconySqft: z.number().int().nonnegative().nullable().optional(),
+  /** Private terrace or garden (row houses, penthouses, ground-floor units). */
+  terraceSqft: z.number().int().nonnegative().nullable().optional(),
+  /** Undivided share of land. */
+  udsSqft: z.number().nonnegative().nullable().optional(),
+  ratePerSqft: z.number().positive().nullable().optional(),
+  /** All-inclusive price (basic + charges + GST, before stamp duty and registration). */
+  totalPriceMin: z.number().int().positive().nullable().optional(),
+  totalPriceMax: z.number().int().positive().nullable().optional(),
+  carParks: z.number().int().nonnegative().nullable().optional(),
+  facing: z.string().max(80).nullable().optional(),
+  /** Tower, block, wing or series the unit belongs to. */
+  tower: z.string().max(80).nullable().optional(),
+  unitCount: z.number().int().positive().nullable().optional(),
 });
 
 export const sourcedSchema = z.object({ source: z.string().min(1), asOf: isoDate });
@@ -65,6 +83,10 @@ export const projectFactsSchema = z.object({
   openSpacePct: z.number().min(0).max(100).nullable().default(null),
   clubhouseSqft: z.number().int().positive().nullable().default(null),
   launchDate: isoDate.nullable().default(null),
+  /** e.g. "G+3, plus a 5,000 sq.ft kids' clubhouse". */
+  clubhouseDetails: z.string().max(200).nullable().default(null),
+  /** Facings available, e.g. "East & North". */
+  facing: z.string().max(120).nullable().default(null),
 });
 
 export const specificationSchema = z.object({
@@ -110,10 +132,41 @@ export const extraDetailSchema = z.object({
   value: z.string().trim().min(1, 'Add a value').max(500),
 });
 
+/** How a charge is counted: a fixed sum, per sq.ft, a percentage, monthly, or at actuals. */
+export const chargeBasisSchema = z.enum(['lumpsum', 'per-sqft', 'percent', 'per-month', 'per-sqft-month', 'actuals', 'included']);
+
+/** One line of the developer's cost sheet beyond the basic price (corpus, maintenance, floor rise…). */
+export const chargeSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().trim().min(1, 'Name the charge').max(120),
+  amount: z.number().nonnegative().nullable().default(null),
+  basis: chargeBasisSchema.default('lumpsum'),
+  /** When it is paid, e.g. "At possession". */
+  payable: z.string().trim().max(120).default(''),
+  note: z.string().trim().max(300).default(''),
+});
+
+export const paymentStageSchema = z.object({
+  id: z.string().min(1),
+  stage: z.string().trim().min(1, 'Name the stage').max(200),
+  percent: z.number().min(0).max(100).nullable().default(null),
+  note: z.string().trim().max(200).default(''),
+});
+
+export const paymentPlanSchema = z.object({
+  /** e.g. "Construction linked", "Time linked", "Down payment", "Subvention". */
+  type: z.string().trim().max(80).default(''),
+  bookingPct: z.number().min(0).max(100).nullable().default(null),
+  stages: z.array(paymentStageSchema).default([]),
+});
+
 export const offerSchema = z.object({
   text: z.string().trim().min(1).max(200),
   validUntil: isoDate.nullable().default(null),
 });
+
+/** Bengaluru plan-sanctioning authorities (BBMP is now GBA; both names are accepted). */
+export const planAuthoritySchema = z.enum(['BBMP', 'GBA', 'BDA', 'BMRDA', 'BIAAPA', 'APA', 'HPA', 'NPA', 'KIADB', 'DTCP', 'Panchayat', 'Other']);
 
 export const propertySchema = z.object({
   id: z.string().min(1),
@@ -165,8 +218,10 @@ export const propertySchema = z.object({
   rera: z.object({ number: z.string().nullable(), verifyUrl: z.string().url().nullable(), registered: z.boolean() }),
   approvals: z.object({
     khata: z.enum(['A', 'B', 'E']).nullable(),
-    planAuthority: z.enum(['BBMP', 'BDA', 'BMRDA', 'BIAAPA']).nullable(),
+    planAuthority: planAuthoritySchema.nullable(),
     titleCheck: z.enum(['clear', 'pending']).nullable(),
+    /** Occupancy certificate. */
+    oc: z.enum(['received', 'applied', 'not-yet']).nullable().optional(),
     notes: z.string(),
   }),
   bankApprovals: z.array(z.string()),
@@ -190,6 +245,10 @@ export const propertySchema = z.object({
   documents: z.array(propertyDocumentSchema).default([]),
   extraDetails: z.array(extraDetailSchema).default([]),
   offer: offerSchema.nullable().default(null),
+  /** e.g. "Phase 2". Phases with their own K-RERA number are listed separately. */
+  phase: z.string().trim().max(80).default(''),
+  charges: z.array(chargeSchema).default([]),
+  paymentPlan: paymentPlanSchema.default({}),
   /** Kept in the admin but left off the website, whatever its status. */
   hidden: z.boolean().default(false),
 

@@ -12,7 +12,7 @@ export const APPROVED_PARTNERS: { id: string; name: string; match: RegExp }[] = 
   { id: 'bren-corporation', name: 'Bren Corporation', match: /\bbren\b/i },
   { id: 'snn-raj-corp', name: 'SNN Raj Corp', match: /\bsnn\b/i },
   { id: 'prestige-group', name: 'Prestige Group', match: /\bprestige\b/i },
-  { id: 'puravankara', name: 'Puravankara', match: /\bpurav?ankara\b/i },
+  { id: 'puravankara', name: 'Puravankara', match: /\bpurav?ankara\b|\bprovident\b|\bpurva\b/i },
   { id: 'sattva-group', name: 'Sattva Group', match: /\bsattva\b/i },
   { id: 'sumadhura-group', name: 'Sumadhura Group', match: /\bsumadhura\b/i },
   { id: 'vaswani-group', name: 'Vaswani Group', match: /\bvaswani\b/i },

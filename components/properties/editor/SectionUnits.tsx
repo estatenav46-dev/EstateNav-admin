@@ -11,6 +11,22 @@ import { MediaUploader } from '../MediaUploader';
 import { newConfiguration } from './model';
 import { SectionCard, useDraft } from './ui';
 
+const UNIT_KINDS: [string, string][] = [
+  ['studio', 'Studio'],
+  ['duplex', 'Duplex'],
+  ['penthouse', 'Penthouse'],
+  ['villa', 'Villa'],
+  ['row-house', 'Row house'],
+  ['villament', 'Villament'],
+  ['independent-house', 'Independent house'],
+  ['plot', 'Plot'],
+  ['office', 'Office'],
+  ['retail', 'Retail'],
+];
+
+/** Like toNullableInt but keeps 0 (a unit can come with no car park or balcony). */
+const toNullableInt0 = { setValueAs: (v: unknown) => (v === '' || v == null || Number.isNaN(Number(v)) ? null : Math.max(0, Math.round(Number(v)))) };
+
 const QUICK: [string, number | null][] = [
   ['1 BHK', 1],
   ['2 BHK', 2],
@@ -261,6 +277,56 @@ export function SectionUnits({ isNew }: { isNew: boolean }) {
                       <Field label="Note" error={e?.notes?.message}>
                         <input {...register(`configurations.${i}.notes`)} className="field min-h-[36px] text-xs" placeholder="e.g. Duplex, with terrace" maxLength={200} />
                       </Field>
+                      <details className="col-span-2 rounded-lg border border-line bg-surface p-3 sm:col-span-4" open={Boolean(c.balconySqft || c.udsSqft || c.totalPriceMin || c.carParks != null || c.tower || c.facing || c.unitCount || c.ratePerSqft || c.terraceSqft || (c.unitKind && c.unitKind !== 'apartment'))}>
+                        <summary className="cursor-pointer text-xs font-semibold text-ink">More unit details (type, balcony, UDS, all-inclusive price, parking…)</summary>
+                        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          <Field label="Unit type">
+                            <select {...register(`configurations.${i}.unitKind`, { setValueAs: (v: unknown) => (v ? v : undefined) })} className="field min-h-[36px] text-xs">
+                              <option value="">Apartment</option>
+                              {UNIT_KINDS.map(([value, label]) => (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                          <Field label="Balcony (sq.ft)">
+                            <input type="number" min={0} {...register(`configurations.${i}.balconySqft`, toNullableInt0)} className="field min-h-[36px] text-xs" />
+                          </Field>
+                          <Field label="Terrace / garden (sq.ft)">
+                            <input type="number" min={0} {...register(`configurations.${i}.terraceSqft`, toNullableInt0)} className="field min-h-[36px] text-xs" />
+                          </Field>
+                          <Field label="UDS (sq.ft)">
+                            <input type="number" min={0} step="0.01" {...register(`configurations.${i}.udsSqft`, toNullableFloat)} className="field min-h-[36px] text-xs" />
+                          </Field>
+                          <Field label="Rate (₹/sq.ft)">
+                            <input type="number" min={1} {...register(`configurations.${i}.ratePerSqft`, toNullableFloat)} className="field min-h-[36px] text-xs" />
+                          </Field>
+                          <Field label="All-inclusive from (₹)" hint={inr(c.totalPriceMin) || 'Basic + charges + GST'}>
+                            <input type="number" min={1} {...register(`configurations.${i}.totalPriceMin`, toNullableInt)} className="field min-h-[36px] text-xs" />
+                          </Field>
+                          <Field label="All-inclusive to (₹)" hint={inr(c.totalPriceMax) || undefined}>
+                            <input type="number" min={1} {...register(`configurations.${i}.totalPriceMax`, toNullableInt)} className="field min-h-[36px] text-xs" />
+                          </Field>
+                          <Field label="Car parks">
+                            <input type="number" min={0} {...register(`configurations.${i}.carParks`, toNullableInt0)} className="field min-h-[36px] text-xs" />
+                          </Field>
+                          <Field label="Facing">
+                            <input {...register(`configurations.${i}.facing`, toNullableText)} className="field min-h-[36px] text-xs" placeholder="East" maxLength={80} />
+                          </Field>
+                          <Field label="Tower / block">
+                            <input {...register(`configurations.${i}.tower`, toNullableText)} className="field min-h-[36px] text-xs" placeholder="Tower 5" maxLength={80} />
+                          </Field>
+                          <Field label="Number of units">
+                            <input type="number" min={1} {...register(`configurations.${i}.unitCount`, toNullableInt)} className="field min-h-[36px] text-xs" />
+                          </Field>
+                          {!plot && (
+                            <Field label="Dimensions">
+                              <input {...register(`configurations.${i}.dimensions`, toNullableText)} className="field min-h-[36px] text-xs" placeholder="villas / row houses" maxLength={60} />
+                            </Field>
+                          )}
+                        </div>
+                      </details>
                     </div>
                     <FloorPlanSlot index={i} label={c.label || `unit ${i + 1}`} />
                   </div>

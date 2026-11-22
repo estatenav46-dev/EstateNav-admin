@@ -23,6 +23,7 @@ import { SectionLocation } from './editor/SectionLocation';
 import { SectionBasics } from './editor/SectionBasics';
 import { SectionFacts } from './editor/SectionFacts';
 import { SectionUnits } from './editor/SectionUnits';
+import { SectionCharges } from './editor/SectionCharges';
 import { SectionLegal } from './editor/SectionLegal';
 import { SectionAmenities } from './editor/SectionAmenities';
 import { SectionConnectivity } from './editor/SectionConnectivity';
@@ -263,6 +264,7 @@ export function PropertyEditor({ initial, developers, corridors, hubs }: Props) 
             <SectionBasics isNew={isNew} siteUrl={SITE_URL} />
             <SectionFacts />
             <SectionUnits isNew={isNew} />
+            <SectionCharges />
             <SectionLegal />
             <SectionAmenities />
             <SectionConnectivity hubs={hubs} />

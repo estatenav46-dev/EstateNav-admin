@@ -38,6 +38,12 @@ export function SectionFacts() {
         <Field label="Launch date" error={errors?.launchDate?.message}>
           <input type="date" {...register('facts.launchDate', toNullableText)} className="field" />
         </Field>
+        <Field label="Clubhouse details" className="sm:col-span-2" error={errors?.clubhouseDetails?.message}>
+          <input {...register('facts.clubhouseDetails', toNullableText)} className="field" placeholder="e.g. G + 3, plus a 5,000 sq.ft kids&apos; clubhouse" maxLength={200} />
+        </Field>
+        <Field label="Facings available" error={errors?.facing?.message}>
+          <input {...register('facts.facing', toNullableText)} className="field" placeholder="e.g. East & North" maxLength={120} />
+        </Field>
       </div>
     </SectionCard>
   );

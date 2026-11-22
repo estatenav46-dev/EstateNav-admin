@@ -1,5 +1,11 @@
 import type { z } from 'zod';
 import type {
+  chargeSchema,
+  chargeBasisSchema,
+  paymentPlanSchema,
+  paymentStageSchema,
+  unitKindSchema,
+  planAuthoritySchema,
   configurationSchema,
   corridorSchema,
   developerSchema,
@@ -47,3 +53,10 @@ export type EnquiryStatus = z.infer<typeof enquiryStatusSchema>;
 export type Enquiry = z.infer<typeof enquirySchema>;
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;
 export type BlogPost = import('zod').infer<typeof import('./schemas').blogPostSchema>;
+
+export type UnitKind = z.infer<typeof unitKindSchema>;
+export type Charge = z.infer<typeof chargeSchema>;
+export type ChargeBasis = z.infer<typeof chargeBasisSchema>;
+export type PaymentPlan = z.infer<typeof paymentPlanSchema>;
+export type PaymentStage = z.infer<typeof paymentStageSchema>;
+export type PlanAuthority = z.infer<typeof planAuthoritySchema>;

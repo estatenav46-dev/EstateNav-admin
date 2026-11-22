@@ -3,6 +3,22 @@
 import { useEffect, useRef } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Field, SubSection, toNullableText } from '@/components/ui/form';
+import { planAuthoritySchema } from '@/lib/data/schemas';
+
+const AUTHORITY_LABEL: Record<string, string> = {
+  BBMP: 'BBMP',
+  GBA: 'GBA (Greater Bengaluru Authority)',
+  BDA: 'BDA',
+  BMRDA: 'BMRDA',
+  BIAAPA: 'BIAAPA (airport area)',
+  APA: 'Anekal Planning Authority',
+  HPA: 'Hoskote Planning Authority',
+  NPA: 'Nelamangala Planning Authority',
+  KIADB: 'KIADB',
+  DTCP: 'DTCP',
+  Panchayat: 'Gram Panchayat',
+  Other: 'Other (see notes)',
+};
 import { AddCustom, Chip, SectionCard, useDraft } from './ui';
 
 const BANKS = ['SBI', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra Bank', 'Bank of Baroda', 'LIC Housing Finance', 'PNB Housing', 'Canara Bank', 'Union Bank of India', 'IDFC First Bank', 'Bajaj Housing Finance'];
@@ -91,7 +107,7 @@ export function SectionLegal() {
       </SubSection>
 
       <SubSection title="Approvals" description="Only fill what you have seen in documents. The website shows “Ask advisor” for anything left blank.">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-4">
           <Field label="Khata">
             <select {...register('approvals.khata', toNullableText)} className="field">
               <option value="">Not confirmed</option>
@@ -103,10 +119,11 @@ export function SectionLegal() {
           <Field label="Plan sanctioned by">
             <select {...register('approvals.planAuthority', toNullableText)} className="field">
               <option value="">Not confirmed</option>
-              <option value="BBMP">BBMP</option>
-              <option value="BDA">BDA</option>
-              <option value="BMRDA">BMRDA</option>
-              <option value="BIAAPA">BIAAPA</option>
+              {planAuthoritySchema.options.map((a) => (
+                <option key={a} value={a}>
+                  {AUTHORITY_LABEL[a] ?? a}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Title check">
@@ -116,7 +133,15 @@ export function SectionLegal() {
               <option value="pending">Check in progress</option>
             </select>
           </Field>
-          <Field label="Approval notes" className="sm:col-span-3" hint="e.g. “OC received for Phase 1 (towers A–D)”.">
+          <Field label="Occupancy certificate">
+            <select {...register('approvals.oc', toNullableText)} className="field">
+              <option value="">Not confirmed</option>
+              <option value="received">OC received</option>
+              <option value="applied">OC applied for</option>
+              <option value="not-yet">Not yet (under construction)</option>
+            </select>
+          </Field>
+          <Field label="Approval notes" className="sm:col-span-4" hint="e.g. “OC received for Phase 1 (towers A–D)”.">
             <input {...register('approvals.notes')} className="field" />
           </Field>
         </div>

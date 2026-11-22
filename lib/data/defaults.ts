@@ -1,6 +1,6 @@
 import type { ProjectFacts, Property, SiteSettings } from './types';
 
-export type ListingDetailKey = 'priceOnRequest' | 'priceNote' | 'facts' | 'specifications' | 'nearby' | 'documents' | 'extraDetails' | 'offer' | 'hidden';
+export type ListingDetailKey = 'priceOnRequest' | 'priceNote' | 'facts' | 'specifications' | 'nearby' | 'documents' | 'extraDetails' | 'offer' | 'hidden' | 'phase' | 'charges' | 'paymentPlan';
 
 export const EMPTY_FACTS: ProjectFacts = {
   landAcres: null,
@@ -10,6 +10,8 @@ export const EMPTY_FACTS: ProjectFacts = {
   openSpacePct: null,
   clubhouseSqft: null,
   launchDate: null,
+  clubhouseDetails: null,
+  facing: null,
 };
 
 /** The listing-detail fields with nothing filled in (same shape as the schema defaults). */
@@ -24,6 +26,9 @@ export function emptyListingDetails(): Pick<Property, ListingDetailKey> {
     extraDetails: [],
     offer: null,
     hidden: false,
+    phase: '',
+    charges: [],
+    paymentPlan: { type: '', bookingPct: null, stages: [] },
   };
 }
 

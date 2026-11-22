@@ -73,9 +73,14 @@ export function SectionBasics({ isNew, siteUrl }: { isNew: boolean; siteUrl: str
   return (
     <SectionCard id="basics">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Project name" required error={errors.title ? 'Add the project name.' : undefined} className="sm:col-span-2">
-          <input {...register('title')} className="field text-base font-semibold" placeholder="e.g. SOBHA Neopolis" />
-        </Field>
+        <div className="grid gap-4 sm:col-span-2 sm:grid-cols-[minmax(0,1fr)_200px]">
+          <Field label="Project name" required error={errors.title ? 'Add the project name.' : undefined} hint="Include the phase if it is part of the name buyers search for.">
+            <input {...register('title')} className="field text-base font-semibold" placeholder="e.g. SOBHA Neopolis" />
+          </Field>
+          <Field label="Phase" hint="e.g. Phase 2. Shown with the project facts.">
+            <input {...register('phase')} className="field" placeholder="optional" maxLength={80} />
+          </Field>
+        </div>
 
         <Field
           label="Web address (slug)"

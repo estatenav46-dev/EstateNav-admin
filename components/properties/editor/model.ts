@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { Building2, Car, FileText, Image as ImageIcon, Layers, ListPlus, MapPin, Ruler, Search, ShieldCheck, Sparkles } from 'lucide-react';
+import { Building2, Car, FileText, Image as ImageIcon, Layers, ListPlus, MapPin, Receipt, Ruler, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import { propertySchema } from '@/lib/data/schemas';
 import { emptyListingDetails } from '@/lib/data/defaults';
 import type { Configuration, Corridor, Developer, ImageRef, Property } from '@/lib/data/types';
@@ -79,6 +79,7 @@ export function draftFromProperty(property: Property): Draft {
     ...rest,
     media: { masterPlan: null, videoUrl: null, virtualTourUrl: null, ...rest.media },
     possession: { reraDate: null, ...rest.possession },
+    approvals: { oc: null, ...rest.approvals },
   };
 }
 
@@ -101,13 +102,14 @@ export function newConfiguration(label: string, bhk: number | null): Configurati
   };
 }
 
-export type SectionId = 'location' | 'basics' | 'facts' | 'units' | 'legal' | 'amenities' | 'connectivity' | 'media' | 'documents' | 'extras' | 'seo';
+export type SectionId = 'location' | 'basics' | 'facts' | 'units' | 'charges' | 'legal' | 'amenities' | 'connectivity' | 'media' | 'documents' | 'extras' | 'seo';
 
 export const SECTIONS: { id: SectionId; label: string; description: string; icon: typeof MapPin }[] = [
   { id: 'location', label: 'Region, area & partner', description: 'Pick the Bengaluru region and area first, then the locality, map pin and partner.', icon: MapPin },
   { id: 'basics', label: 'Basics', description: 'Name, web address, type and the story of the project.', icon: Building2 },
   { id: 'facts', label: 'Project facts', description: 'Land, towers, units and open space, as stated by the developer.', icon: Ruler },
   { id: 'units', label: 'Unit types & pricing', description: 'Each configuration with sizes, prices and its floor plan.', icon: Layers },
+  { id: 'charges', label: 'Charges & payment plan', description: 'Every line of the cost sheet beyond the basic price, and the payment schedule.', icon: Receipt },
   { id: 'legal', label: 'Possession & RERA', description: 'Timelines, K-RERA registration, approvals and bank tie-ups.', icon: ShieldCheck },
   { id: 'amenities', label: 'Amenities & specifications', description: 'What residents get and what the homes are built with.', icon: Sparkles },
   { id: 'connectivity', label: 'Connectivity', description: 'Distances to metro, schools, hospitals, offices and more.', icon: Car },
@@ -132,6 +134,8 @@ const OWNERS: [string, SectionId][] = [
   ['size', 'units'],
   ['rentPerMonth', 'units'],
   ['offer', 'units'],
+  ['charges', 'charges'],
+  ['paymentPlan', 'charges'],
   ['possession', 'legal'],
   ['rera', 'legal'],
   ['approvals', 'legal'],
@@ -192,6 +196,8 @@ export function sectionComplete(id: SectionId, d: Draft): boolean | null {
       return Boolean(d.facts?.landAcres || d.facts?.totalUnits || d.facts?.towers);
     case 'units':
       return d.configurations.length > 0 && (d.priceOnRequest || Number(d.priceMin) > 0);
+    case 'charges':
+      return d.charges.length > 0 || d.paymentPlan.stages.length > 0 ? true : null;
     case 'legal':
       return Boolean(d.rera?.number && d.possession?.label);
     case 'amenities':

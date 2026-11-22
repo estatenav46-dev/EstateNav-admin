@@ -113,7 +113,14 @@ async function loadProperties(filter?: { status?: string; segment?: string; corr
   }
 
   const snap = await q.get();
-  const items = snap.docs.map((d) => d.data());
+  const items = snap.docs.flatMap((d) => {
+    try {
+      return [d.data()];
+    } catch (error) {
+      console.error(`[properties] invalid listing ${d.id}:`, error instanceof Error ? error.message.slice(0, 400) : error);
+      return [];
+    }
+  });
   items.sort((a, b) => a.featuredRank - b.featuredRank);
   return items;
 }

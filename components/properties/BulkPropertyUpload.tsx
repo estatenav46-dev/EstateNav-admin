@@ -1,47 +1,237 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Download, FileSpreadsheet, Loader2, Upload, XCircle } from 'lucide-react';
-import type { Developer } from '@/lib/data/types';
+import { AlertTriangle, CheckCircle2, ClipboardCopy, Download, FileSpreadsheet, FolderOpen, ImagePlus, Loader2, RotateCcw, Upload, XCircle } from 'lucide-react';
+import type { Developer, ImageRef, PropertyDocument } from '@/lib/data/types';
 import { partnerOptions } from '@/lib/partners';
+import { inspectImage, uploadDocumentToCloudinary, uploadImageToCloudinary } from '@/lib/media';
+import type { PreviewProject } from '@/app/api/properties/import/route';
+import type { Candidate, Copied, ResolveResult } from '@/lib/import/media';
+import type { ImportedMedia } from '@/lib/import/build';
 
-type ImportResult = { created: number; updated: number; failed: number; errors: string[]; message?: string };
+type Phase = 'idle' | 'reading' | 'preview' | 'importing' | 'done';
+type RunState = { state: 'waiting' | 'working' | 'done' | 'failed'; step: string; done: number; total: number; messages: string[]; slug?: string; id?: string; status?: string };
+
+const IMAGE_RE = /\.(jpe?g|png|webp|avif|heic|gif)$/i;
+const base = (path: string) => path.split(/[\\/]/).pop()!.toLowerCase();
+
+/** Role of an attached file found in a folder named after the project_key. */
+function roleFromName(name: string): Candidate['role'] {
+  if (/master\s*-?plan|site\s*plan|layout/i.test(name)) return 'master-plan';
+  if (/floor|unit\s*-?plan|typical|bhk|plan/i.test(name)) return 'floor-plan';
+  return 'gallery';
+}
+
+async function postJson<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { message?: string }).message || `Request failed (${res.status})`);
+  return data as T;
+}
 
 export function BulkPropertyUpload({ developers, defaultOpen = false }: { developers: Developer[]; defaultOpen?: boolean }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const filesRef = useRef<HTMLInputElement>(null);
+  const folderRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(defaultOpen);
   const [scope, setScope] = useState<'all' | 'partner'>('all');
   const [developerId, setDeveloperId] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<ImportResult | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [copyImages, setCopyImages] = useState(true);
-  const [open, setOpen] = useState(defaultOpen);
+  const [workbook, setWorkbook] = useState<File | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [replacePhotos, setReplacePhotos] = useState(false);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<PreviewProject[]>([]);
+  const [notes, setNotes] = useState<string[]>([]);
+  const [runs, setRuns] = useState<Record<string, RunState>>({});
+  const [finishWarning, setFinishWarning] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     if (window.location.hash === '#bulk-upload') setOpen(true);
   }, []);
 
-  const upload = async () => {
-    if (!file || (scope === 'partner' && !developerId)) return;
-    setUploading(true);
-    setResult(null);
-    const data = new FormData();
-    data.set('file', file);
-    if (scope === 'partner') data.set('developerId', developerId);
-    data.set('copyImages', String(copyImages));
+  const attachedByName = useMemo(() => {
+    const map = new Map<string, File>();
+    attachments.forEach((f) => {
+      map.set(base(f.name), f);
+      const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
+      if (rel) map.set(rel.toLowerCase(), f);
+    });
+    return map;
+  }, [attachments]);
+
+  const ready = projects.filter((p) => !p.errors.length);
+  const blocked = projects.filter((p) => p.errors.length);
+
+  const copyPrompt = async () => {
     try {
-      const response = await fetch('/api/properties/import', { method: 'POST', body: data });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.message || 'The workbook could not be imported.');
-      setResult(payload);
-      if (payload.created || payload.updated) router.refresh();
-    } catch (error) {
-      setResult({ created: 0, updated: 0, failed: 0, errors: [], message: error instanceof Error ? error.message : 'The workbook could not be imported.' });
-    } finally {
-      setUploading(false);
+      const res = await fetch('/api/properties/import/prompt');
+      if (!res.ok) throw new Error();
+      await navigator.clipboard.writeText(await res.text());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setError('The prompt could not be copied. Open /api/properties/import/prompt and copy it from there.');
     }
   };
+
+  const reset = () => {
+    setPhase('idle');
+    setProjects([]);
+    setNotes([]);
+    setRuns({});
+    setError(null);
+    setFinishWarning(null);
+  };
+
+  const read = async () => {
+    if (!workbook || (scope === 'partner' && !developerId)) return;
+    setPhase('reading');
+    setError(null);
+    const data = new FormData();
+    data.set('file', workbook);
+    if (scope === 'partner') data.set('developerId', developerId);
+    try {
+      const res = await fetch('/api/properties/import', { method: 'POST', body: data });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.message || 'The workbook could not be read.');
+      setProjects(payload.projects);
+      setNotes(payload.notes ?? []);
+      setPhase('preview');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'The workbook could not be read.');
+      setPhase('idle');
+    }
+  };
+
+  const update = (key: string, patch: Partial<RunState> | ((r: RunState) => Partial<RunState>)) =>
+    setRuns((all) => {
+      const current = all[key];
+      return { ...all, [key]: { ...current, ...(typeof patch === 'function' ? patch(current) : patch) } };
+    });
+
+  /** Uploads a file attached in the browser straight to Cloudinary. */
+  async function uploadLocal(c: Candidate, file: File, propertyId: string, title: string, order: number): Promise<Copied> {
+    if (c.role === 'document') {
+      const up = await uploadDocumentToCloudinary(file, `properties/${propertyId}/documents`);
+      const kind = c.docKind ?? 'other';
+      const document: PropertyDocument = { id: `doc-${Date.now().toString(36)}${order}`, kind, label: (c.label || file.name.replace(/\.[a-z0-9]+$/i, '')).slice(0, 120), url: up.url, storagePath: up.storagePath, format: up.format, sizeBytes: up.sizeBytes, access: c.access ?? 'public' };
+      return { kind: 'document', document };
+    }
+    if (!IMAGE_RE.test(file.name)) throw new Error(`${file.name} is not a JPG, PNG or WEBP image`);
+    const meta = await inspectImage(file).catch(() => ({ width: 1600, height: 1060, blurDataURL: '' }));
+    const folder = c.role === 'gallery' || c.role === 'cover' ? 'gallery' : 'plans';
+    const alt = c.role === 'floor-plan' ? `${title} floor plan` : c.role === 'master-plan' ? `${title} master plan` : `${title} photo ${order + 1}`;
+    const image: ImageRef = await uploadImageToCloudinary(file, `properties/${propertyId}/${folder}`, { alt, order, ...meta });
+    return { kind: 'image', image };
+  }
+
+  async function importOne(p: PreviewProject) {
+    const key = p.key;
+    const propertyId = p.existingId ?? `p-${p.key}`;
+    const title = [p.fields.name, p.fields.phase].filter(Boolean).join(' ');
+    const images = replacePhotos || p.existingPhotos === 0;
+    const messages: string[] = [];
+    update(key, { state: 'working', step: 'Finding photos and files', done: 0, total: 0, messages });
+
+    // 1. What the links point to.
+    const resolved = await postJson<ResolveResult>('/api/properties/import/media', { project: p, propertyId, title, images });
+    messages.push(...resolved.warnings);
+    const candidates = [...resolved.candidates];
+    // Attached files inside a folder named after the project_key belong to this project.
+    if (images) {
+      for (const f of attachments) {
+        const rel = ((f as File & { webkitRelativePath?: string }).webkitRelativePath || '').toLowerCase();
+        if (rel && rel.split('/').slice(0, -1).includes(p.key) && !candidates.some((c) => c.local && base(c.local) === base(f.name))) {
+          candidates.push({ role: /\.pdf$/i.test(f.name) ? 'document' : roleFromName(f.name), fetchUrl: '', local: f.name, name: f.name, docKind: /\.pdf$/i.test(f.name) ? (/brochure/i.test(f.name) ? 'brochure' : /floor|plan/i.test(f.name) ? 'floor-plans' : /price|cost/i.test(f.name) ? 'price-sheet' : 'other') : undefined });
+        }
+      }
+    }
+    update(key, { step: 'Copying photos and files', total: candidates.length, messages: [...messages] });
+
+    // 2. Copy everything (attached files from the browser, links through the server in batches of 4).
+    const media: ImportedMedia = { cover: null, gallery: [], masterPlan: null, floorPlans: [], documents: [], videoUrl: resolved.videoUrl, replaced: images };
+    const place = (c: Candidate, result: Copied) => {
+      if (result.kind === 'document') media.documents.push(result.document);
+      else if (c.role === 'cover') media.cover = result.image;
+      else if (c.role === 'gallery') media.gallery.push(result.image);
+      else if (c.role === 'master-plan') media.masterPlan = media.masterPlan ?? result.image;
+      else media.floorPlans.push({ image: result.image, unitIndex: c.unitIndex });
+    };
+    let order = 0;
+    const local = candidates.filter((c) => c.local);
+    const remote = candidates.filter((c) => !c.local);
+    for (const c of local) {
+      const file = attachedByName.get(c.local!.toLowerCase()) ?? attachedByName.get(base(c.local!));
+      if (!file) messages.push(`“${c.local}” is named in the sheet but was not attached.`);
+      else {
+        try {
+          place(c, await uploadLocal(c, file, propertyId, title, order++));
+        } catch (e) {
+          messages.push(e instanceof Error ? e.message : `${c.local} could not be uploaded`);
+        }
+      }
+      update(key, (r) => ({ done: r.done + 1, messages: [...messages] }));
+    }
+    for (let i = 0; i < remote.length; i += 4) {
+      const batch = remote.slice(i, i + 4).map((c) => ({ ...c, order: order++ }));
+      try {
+        const { results } = await postJson<{ results: ({ ok: true; copied: Copied } | { ok: false; error: string })[] }>('/api/properties/import/copy', { propertyId, title, items: batch });
+        results.forEach((r, j) => {
+          if (!r.ok) return void messages.push(r.error);
+          place(batch[j], r.copied);
+          if (r.copied.note && !messages.includes(r.copied.note)) messages.push(r.copied.note);
+        });
+      } catch (e) {
+        messages.push(e instanceof Error ? e.message : 'Some files could not be copied');
+      }
+      update(key, (r) => ({ done: Math.min(r.total, r.done + batch.length), messages: [...messages] }));
+    }
+
+    // 3. Save.
+    update(key, { step: 'Saving listing', messages: [...messages] });
+    const saved = await postJson<{ id: string; slug: string; status: string; created: boolean; areaCreated: boolean; warnings: string[] }>('/api/properties/import/save', {
+      project: p,
+      media,
+      developerId: scope === 'partner' ? developerId : undefined,
+    });
+    messages.push(...saved.warnings);
+    if (saved.areaCreated) messages.push(`New area “${p.fields.area}” was created in the ${p.fields.region} region.`);
+    update(key, { state: 'done', step: saved.created ? `Created (${saved.status})` : `Updated (${saved.status})`, slug: saved.slug, id: saved.id, status: saved.status, messages: [...messages] });
+  }
+
+  const runImport = async () => {
+    setPhase('importing');
+    setRuns(Object.fromEntries(ready.map((p) => [p.key, { state: 'waiting', step: 'Waiting', done: 0, total: 0, messages: [] } as RunState])));
+    // Two projects at a time keeps uploads quick without overloading the server.
+    const queue = [...ready];
+    const worker = async () => {
+      for (let p = queue.shift(); p; p = queue.shift()) {
+        try {
+          await importOne(p);
+        } catch (e) {
+          update(p.key, (r) => ({ state: 'failed', step: 'Failed', messages: [...(r?.messages ?? []), e instanceof Error ? e.message : 'Import failed'] }));
+        }
+      }
+    };
+    await Promise.all([worker(), worker()]);
+    try {
+      const done = await postJson<{ warning?: string }>('/api/properties/import/finish', {});
+      setFinishWarning(done.warning ?? null);
+    } catch {
+      setFinishWarning('Listings were saved, but the website refresh could not be requested. Changes appear within a minute.');
+    }
+    setPhase('done');
+    router.refresh();
+  };
+
+  const totals = Object.values(runs);
+  const doneCount = totals.filter((r) => r.state === 'done').length;
+  const failedCount = totals.filter((r) => r.state === 'failed').length;
 
   return (
     <section id="bulk-upload" className="scroll-mt-24 rounded-xl border border-line bg-surface shadow-sm">
@@ -52,62 +242,203 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
           </span>
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-ink">Bulk upload from Excel</h2>
-            <p className="truncate text-2xs text-ink-muted">Add or update many listings at once. Rows with the same web address update the existing listing.</p>
+            <p className="text-2xs text-ink-muted">Projects, every unit size, charges, payment plan, nearby places, specifications, documents and photos in one workbook.</p>
           </div>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <a href="/api/properties/template" className="btn-secondary text-xs">
             <Download className="h-3.5 w-3.5" /> Template
           </a>
+          <button type="button" onClick={copyPrompt} className="btn-secondary text-xs" title="Paste into ChatGPT, Claude or Gemini with the template and the developer's files">
+            <ClipboardCopy className="h-3.5 w-3.5" /> {copied ? 'Prompt copied' : 'Copy AI prompt'}
+          </button>
           <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className={open ? 'btn-secondary text-xs' : 'btn-primary text-xs'}>
             {open ? 'Close' : (<><Upload className="h-3.5 w-3.5" /> Upload Excel</>)}
           </button>
         </div>
       </div>
+
       {open && (
-      <div className="border-t border-line p-3 sm:px-4">
-      <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-        <div>
-          <label className="mb-1 block text-xs font-semibold">Upload scope</label>
-          <select value={scope} onChange={(event) => setScope(event.target.value as 'all' | 'partner')} className="field w-full text-sm">
-            <option value="all">All partners — use developer_id in the sheet</option>
-            <option value="partner">One partner — apply the selected partner to every row</option>
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold">Partner developer {scope === 'partner' ? '*' : '(optional)'}</label>
-          <select value={developerId} disabled={scope !== 'partner'} onChange={(event) => setDeveloperId(event.target.value)} className="field w-full text-sm disabled:opacity-50">
-            <option value="">Select partner</option>
-            {partnerOptions(developers).map((partner) => <option key={partner.id} value={partner.id}>{partner.name}{partner.hidden ? ' (hidden)' : ''}</option>)}
-          </select>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => fileRef.current?.click()} className="btn-secondary px-3 text-xs">
-            <Upload className="h-3.5 w-3.5" /> {file ? 'Change file' : 'Choose Excel'}
-          </button>
-          <button type="button" onClick={upload} disabled={!file || uploading || (scope === 'partner' && !developerId)} className="btn-primary px-3 text-xs disabled:opacity-50">
-            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />} {uploading ? 'Importing…' : 'Import'}
-          </button>
-          <input ref={fileRef} type="file" accept=".xlsx,.xlsm" className="hidden" onChange={(event) => setFile(event.target.files?.[0] || null)} />
-        </div>
-      </div>
+        <div className="space-y-4 border-t border-line p-3 sm:px-4">
+          {(phase === 'idle' || phase === 'reading') && (
+            <>
+              <ol className="grid gap-2 text-2xs text-ink-muted sm:grid-cols-3">
+                <li className="rounded-lg bg-surface-2/60 p-2.5"><span className="font-semibold text-ink">1. Fill the template.</span> Download it, then attach it with the brochure, cost sheet and floor-plan book to an AI tool together with the copied prompt, or fill it yourself.</li>
+                <li className="rounded-lg bg-surface-2/60 p-2.5"><span className="font-semibold text-ink">2. Photos.</span> Put a public Google Drive folder, ZIP or project-page link in <code>media_folder_link</code>, or attach images below (file names in the sheet, or a folder per project_key).</li>
+                <li className="rounded-lg bg-surface-2/60 p-2.5"><span className="font-semibold text-ink">3. Check and import.</span> You see every project, its units and any problems before anything is saved. New listings are saved as drafts unless the sheet says published.</li>
+              </ol>
 
-      <label className="mt-4 flex cursor-pointer items-start gap-2 text-xs">
-        <input type="checkbox" checked={copyImages} onChange={(e) => setCopyImages(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[rgb(var(--accent))]" />
-        <span>
-          <span className="font-semibold text-ink">Copy image and PDF links into Cloudinary</span>
-          <span className="block text-ink-muted">Recommended, so listings do not depend on other websites. Works for up to 40 rows per upload; files over 10 MB stay as links.</span>
-        </span>
-      </label>
-      {file && <p className="mt-3 text-xs text-ink-muted">Selected: <span className="font-medium text-ink">{file.name}</span> ({Math.ceil(file.size / 1024)} KB)</p>}
-      <p className="mt-3 text-2xs text-ink-muted">Required columns: title, corridor_id, price_min, and developer_id unless you import for one partner. The template&apos;s “Column guide” sheet explains every column, and “Partners &amp; areas” lists the IDs to use.</p>
+              <div className="grid gap-3 lg:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold">Partner</label>
+                  <div className="flex gap-2">
+                    <select value={scope} onChange={(e) => setScope(e.target.value as 'all' | 'partner')} className="field w-1/2 text-sm">
+                      <option value="all">From the sheet</option>
+                      <option value="partner">One partner for all rows</option>
+                    </select>
+                    <select value={developerId} disabled={scope !== 'partner'} onChange={(e) => setDeveloperId(e.target.value)} className="field w-1/2 text-sm disabled:opacity-50">
+                      <option value="">Select partner</option>
+                      {partnerOptions(developers).map((partner) => <option key={partner.id} value={partner.id}>{partner.name}{partner.hidden ? ' (hidden)' : ''}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold">Files</label>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => fileRef.current?.click()} className="btn-secondary px-3 text-xs">
+                      <FileSpreadsheet className="h-3.5 w-3.5" /> {workbook ? 'Change workbook' : 'Choose workbook (.xlsx)'}
+                    </button>
+                    <button type="button" onClick={() => filesRef.current?.click()} className="btn-secondary px-3 text-xs">
+                      <ImagePlus className="h-3.5 w-3.5" /> Attach images / PDFs
+                    </button>
+                    <button type="button" onClick={() => folderRef.current?.click()} className="btn-secondary px-3 text-xs">
+                      <FolderOpen className="h-3.5 w-3.5" /> Attach a folder
+                    </button>
+                  </div>
+                  <input ref={fileRef} type="file" accept=".xlsx,.xlsm" className="hidden" onChange={(e) => setWorkbook(e.target.files?.[0] || null)} />
+                  <input ref={filesRef} type="file" multiple accept="image/*,.pdf" className="hidden" onChange={(e) => setAttachments((a) => [...a, ...Array.from(e.target.files ?? [])])} />
+                  <input ref={folderRef} type="file" multiple className="hidden" {...({ webkitdirectory: '', directory: '' } as Record<string, string>)} onChange={(e) => setAttachments((a) => [...a, ...Array.from(e.target.files ?? []).filter((f) => IMAGE_RE.test(f.name) || /\.pdf$/i.test(f.name))])} />
+                </div>
+              </div>
 
-      {result && (
-        <div className={`mt-4 rounded-xl border p-4 text-xs ${result.message ? 'border-danger/30 bg-danger/10 text-danger' : result.failed ? 'border-amber-400/40 bg-amber-50 text-amber-900' : 'border-emerald-400/40 bg-emerald-50 text-emerald-900'}`}>
-          {result.message ? <div className="flex items-center gap-2"><XCircle className="h-4 w-4" />{result.message}</div> : <><p className="font-semibold">Import complete: {result.created} created, {result.updated} updated, {result.failed} skipped.</p>{result.errors.length > 0 && <ul className="mt-2 list-disc space-y-1 pl-4">{result.errors.map((error) => <li key={error}>{error}</li>)}</ul>}</>}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
+                {workbook && <span>Workbook: <span className="font-medium text-ink">{workbook.name}</span> ({Math.ceil(workbook.size / 1024)} KB)</span>}
+                {attachments.length > 0 && (
+                  <span>
+                    {attachments.length} file(s) attached{' '}
+                    <button type="button" onClick={() => setAttachments([])} className="font-semibold text-accent-ink hover:underline">clear</button>
+                  </span>
+                )}
+              </div>
+
+              <label className="flex cursor-pointer items-start gap-2 text-xs">
+                <input type="checkbox" checked={replacePhotos} onChange={(e) => setReplacePhotos(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[rgb(var(--accent))]" />
+                <span>
+                  <span className="font-semibold text-ink">Re-import photos for listings that already have photos</span>
+                  <span className="block text-ink-muted">Off: existing listings keep their current photos and floor plans; only new listings get photos. Documents and all other details are always updated.</span>
+                </span>
+              </label>
+
+              <button type="button" onClick={read} disabled={!workbook || phase === 'reading' || (scope === 'partner' && !developerId)} className="btn-primary text-xs disabled:opacity-50">
+                {phase === 'reading' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />} {phase === 'reading' ? 'Reading workbook…' : 'Read workbook and preview'}
+              </button>
+            </>
+          )}
+
+          {error && (
+            <div className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger">
+              <XCircle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
+
+          {phase !== 'idle' && phase !== 'reading' && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-ink-muted">
+                  <span className="font-semibold text-ink">{projects.length}</span> project(s) in the workbook · <span className="text-emerald-700">{ready.length} ready</span>
+                  {blocked.length > 0 && <> · <span className="text-danger">{blocked.length} with errors (skipped)</span></>}
+                  {phase === 'importing' && <> · importing {doneCount + failedCount}/{ready.length}</>}
+                  {phase === 'done' && <> · <span className="font-semibold text-emerald-700">{doneCount} saved</span>{failedCount > 0 && <span className="text-danger">, {failedCount} failed</span>}</>}
+                </p>
+                <div className="flex gap-2">
+                  {phase !== 'importing' && (
+                    <button type="button" onClick={reset} className="btn-secondary text-xs">
+                      <RotateCcw className="h-3.5 w-3.5" /> {phase === 'done' ? 'Import another' : 'Start over'}
+                    </button>
+                  )}
+                  {phase === 'preview' && (
+                    <button type="button" onClick={runImport} disabled={!ready.length} className="btn-primary text-xs disabled:opacity-50">
+                      <Upload className="h-3.5 w-3.5" /> Import {ready.length} project{ready.length === 1 ? '' : 's'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {phase === 'importing' && (
+                <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+                  <div className="h-full bg-accent transition-all" style={{ width: `${ready.length ? ((doneCount + failedCount) / ready.length) * 100 : 0}%` }} />
+                </div>
+              )}
+              {finishWarning && <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">{finishWarning}</p>}
+              {notes.length > 0 && (
+                <ul className="list-disc space-y-0.5 rounded-lg bg-amber-50 p-2 pl-6 text-xs text-amber-900">
+                  {notes.slice(0, 20).map((n) => <li key={n}>{n}</li>)}
+                  {notes.length > 20 && <li>…and {notes.length - 20} more</li>}
+                </ul>
+              )}
+
+              <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
+                {projects.map((p) => {
+                  const run = runs[p.key];
+                  const f = p.fields;
+                  const counts = [
+                    p.units && `${p.units.length} unit${p.units.length === 1 ? '' : 's'}`,
+                    p.charges && `${p.charges.length} charges`,
+                    p.stages && `${p.stages.length} payment stages`,
+                    p.nearby && `${p.nearby.length} nearby`,
+                    p.specs && `${p.specs.length} specs`,
+                    p.documents && `${p.documents.length} docs`,
+                    p.extras && `${p.extras.length} more details`,
+                    f.amenities && `${f.amenities.length} amenities`,
+                  ].filter(Boolean);
+                  const bhks = Array.from(new Set((p.units ?? []).map((u) => (u.bhk ? `${u.bhk} BHK` : u.kind)))).join(', ');
+                  const mediaInfo = [f.mediaFolder && 'media folder', f.cover && 'cover', f.gallery?.length && `${f.gallery.length} photo links`].filter(Boolean).join(', ');
+                  return (
+                    <li key={`${p.key}-${p.row}`} className={`p-3 text-xs ${p.errors.length ? 'bg-danger/5' : ''}`}>
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-ink">
+                            {[f.name, f.phase].filter(Boolean).join(' · ') || '(no name)'} <span className="font-mono font-normal text-ink-muted">/{p.key}</span>
+                          </p>
+                          <p className="text-ink-muted">
+                            Row {p.row} · {p.partnerName ?? f.partner ?? '—'} · {p.areaName ?? f.area ?? '—'}
+                            {p.areaIsNew && <span className="ml-1 rounded bg-sky-100 px-1 text-sky-800">new area</span>} · {p.existingId ? `updates the existing listing${p.existingPhotos ? ` (${p.existingPhotos} photos)` : ''}` : 'new listing'}
+                          </p>
+                          <p className="text-ink-muted">{[bhks, counts.join(' · '), mediaInfo ? `Photos from: ${mediaInfo}` : 'no photo source'].filter(Boolean).join(' — ')}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          {run ? (
+                            <span className={`inline-flex items-center gap-1 font-semibold ${run.state === 'done' ? 'text-emerald-700' : run.state === 'failed' ? 'text-danger' : 'text-ink'}`}>
+                              {run.state === 'working' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                              {run.state === 'done' && <CheckCircle2 className="h-3.5 w-3.5" />}
+                              {run.state === 'failed' && <XCircle className="h-3.5 w-3.5" />}
+                              {run.step}
+                              {run.state === 'working' && run.total > 0 && ` ${run.done}/${run.total}`}
+                            </span>
+                          ) : p.errors.length ? (
+                            <span className="font-semibold text-danger">Will be skipped</span>
+                          ) : (
+                            <span className="text-emerald-700">Ready</span>
+                          )}
+                          {run?.id && (
+                            <Link href={`/properties/${run.id}`} className="mt-1 block font-semibold text-accent-ink hover:underline">
+                              Review listing →
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                      {p.errors.length > 0 && (
+                        <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-danger">
+                          {p.errors.map((e) => <li key={e}>{e}</li>)}
+                        </ul>
+                      )}
+                      {(p.warnings.length > 0 || (run?.messages.length ?? 0) > 0) && (
+                        <details className="mt-1.5">
+                          <summary className="inline-flex cursor-pointer items-center gap-1 text-amber-800">
+                            <AlertTriangle className="h-3.5 w-3.5" /> {p.warnings.length + (run?.messages.length ?? 0)} note(s)
+                          </summary>
+                          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-amber-900">
+                            {[...p.warnings, ...(run?.messages ?? [])].slice(0, 40).map((w, i) => <li key={`${i}-${w}`}>{w}</li>)}
+                          </ul>
+                        </details>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
-      )}
-      </div>
       )}
     </section>
   );
