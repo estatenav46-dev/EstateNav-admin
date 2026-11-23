@@ -25,7 +25,7 @@ const config: Config = {
         'on-accent': token('on-accent'),
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['var(--font-geist-sans)', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       fontSize: {
@@ -38,7 +38,7 @@ const config: Config = {
         '2xl': ['1.5rem', { lineHeight: '1.25' }],
         '3xl': ['1.875rem', { lineHeight: '1.15' }],
       },
-      borderRadius: { card: '16px' },
+      borderRadius: { card: '14px' },
     },
   },
   plugins: [],

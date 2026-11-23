@@ -35,10 +35,9 @@ export function SettingsEditor({ initialSettings }: Props) {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center justify-between rounded-xl border border-line bg-surface px-4 py-4 shadow-sm sm:px-5">
+      <div className="flex items-center justify-between">
         <div>
-          <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Operations</p>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Settings</h1>
+          <h1 className="text-[1.65rem] font-semibold tracking-tight text-ink">Settings</h1>
           <p className="mt-0.5 text-sm text-ink-muted">
             Advisor contact details, K-RERA agent registration, Karnataka purchase costs and the legal text shown on the website.
           </p>

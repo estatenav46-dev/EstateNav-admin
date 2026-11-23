@@ -168,7 +168,7 @@ export function DeveloperForm({ initial, mode, lockId = false, onSaved, onCancel
 
       <MediaUploader
         label="Logo"
-        description="Square or wide logo on a plain background. Shown in the admin; the public site lists partners in text only."
+        description="Square or wide logo on a plain background. Shown on the website’s partner wall (in colour, on a white tile); without one, the website uses the partner’s official logo if it has one, otherwise the name."
         storagePath={`developers/${dev.id || 'new'}`}
         images={dev.logo ? [dev.logo] : []}
         onChange={(images) => set('logo', images[0] ?? null)}

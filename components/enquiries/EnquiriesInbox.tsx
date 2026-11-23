@@ -71,10 +71,9 @@ export function EnquiriesInbox({ initialEnquiries, initialStatus = 'all' }: Prop
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Operations</p>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Enquiries</h1>
+          <h1 className="text-[1.65rem] font-semibold tracking-tight text-ink">Enquiries</h1>
           <p className="mt-0.5 text-sm text-ink-muted">Leads from the website, with the consent they gave and where they came from.</p>
         </div>
 
@@ -133,7 +132,7 @@ export function EnquiriesInbox({ initialEnquiries, initialStatus = 'all' }: Prop
                           : enq.status === 'contacted'
                           ? 'bg-blue-500'
                           : enq.status === 'visit-scheduled'
-                          ? 'bg-purple-500'
+                          ? 'bg-teal-500'
                           : 'bg-ink-muted/40'
                       }`}
                     />

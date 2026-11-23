@@ -1,21 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Building2,
-  Inbox,
-  Users,
-  Map,
-  Settings,
-  LogOut,
-  ExternalLink,
-  Shield,
-  ChevronRight,
-  Layers3,
-  Newspaper,
-} from 'lucide-react';
+import { Building2, ExternalLink, Inbox, LayoutDashboard, LogOut, Map, Newspaper, Settings, Users } from 'lucide-react';
 import { logoutAction } from '@/app/actions/auth';
 
 const NAV_ITEMS = [
@@ -29,45 +17,56 @@ const NAV_ITEMS = [
 ];
 
 const NAV_GROUPS = ['Workspace', 'Catalogue', 'Content', 'Operations'] as const;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://estatenav.in';
+
+const isActive = (href: string, pathname: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
 export function AdminShell({ children, userEmail }: { children: React.ReactNode; userEmail: string }) {
   const pathname = usePathname();
+  const current = NAV_ITEMS.find((item) => isActive(item.href, pathname));
 
   const handleLogout = async () => {
-    if (confirm('Are you sure you want to log out?')) {
+    if (confirm('Log out of the EstateNav admin?')) {
       await logoutAction();
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-bg text-ink text-sm">
-      {/* Sidebar (Desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-line bg-surface shadow-[8px_0_24px_rgb(15_23_42/0.025)] md:flex">
-        {/* Logo / Brand */}
-        <div className="flex h-14 items-center border-b border-line px-4">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white shadow-sm"><Layers3 className="h-4 w-4" /></span>
-            <span>
-              <span className="block text-lg font-bold leading-none tracking-tight text-ink">Estate<span className="text-accent-ink">Nav</span></span>
-              <span className="mt-1 block font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted">Control centre</span>
+    <div className="flex min-h-screen bg-bg text-sm text-ink">
+      {/* Sidebar (desktop) */}
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
+        <div className="flex h-16 items-center px-5">
+          <Link href="/" className="flex items-center gap-2.5" aria-label="EstateNav admin overview">
+            <span className="relative h-9 w-9 overflow-hidden rounded-full border border-line bg-surface">
+              <Image src="/logo.png" alt="" fill sizes="36px" className="object-cover" priority />
+            </span>
+            <span className="leading-tight">
+              <span className="block text-[1.05rem] font-bold tracking-tight text-ink">EstateNav</span>
+              <span className="block text-xs text-ink-muted">Admin</span>
             </span>
           </Link>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 space-y-4 overflow-y-auto px-2.5 py-4">
+        <nav aria-label="Admin sections" className="flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-2">
           {NAV_GROUPS.map((group) => (
             <div key={group}>
-              <p className="px-3 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted/80">{group}</p>
-              <div className="space-y-1">
+              <p className="px-3 pb-1.5 text-xs font-medium text-ink-muted/80">{group}</p>
+              <div className="space-y-0.5">
                 {NAV_ITEMS.filter((item) => item.group === group).map((item) => {
                   const Icon = item.icon;
-                  const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+                  const active = isActive(item.href, pathname);
                   return (
-                    <Link key={item.href} href={item.href} className={`group flex min-h-[36px] items-center gap-2.5 rounded-lg px-2.5 text-xs font-medium transition-all ${active ? 'bg-accent text-white shadow-sm' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'}`}>
-                      <Icon className="h-4 w-4 shrink-0" />
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={active ? 'page' : undefined}
+                      className={`relative flex h-10 items-center gap-3 rounded-[10px] px-3 text-sm transition-colors ${
+                        active ? 'bg-accent-soft font-semibold text-accent-ink' : 'font-medium text-ink-muted hover:bg-surface-2 hover:text-ink'
+                      }`}
+                    >
+                      {active && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-accent" />}
+                      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.1 : 1.8} />
                       <span className="flex-1">{item.label}</span>
-                      {active && <ChevronRight className="h-3.5 w-3.5" />}
                     </Link>
                   );
                 })}
@@ -76,67 +75,67 @@ export function AdminShell({ children, userEmail }: { children: React.ReactNode;
           ))}
         </nav>
 
-        {/* Footer / User Profile */}
-        <div className="border-t border-line bg-surface-2/40 p-4 space-y-3">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-full bg-accent-soft text-accent-ink flex items-center justify-center font-bold text-xs">
-              <Shield className="h-3.5 w-3.5" />
-            </div>
+        <div className="border-t border-line p-3">
+          <div className="flex items-center gap-2.5 rounded-[10px] px-2 py-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-bold uppercase text-accent-ink">{userEmail.charAt(0)}</span>
             <div className="min-w-0 flex-1">
-              <p className="text-2xs text-ink-muted leading-none">Authenticated</p>
-              <p className="truncate text-xs font-mono font-medium text-ink mt-0.5">{userEmail}</p>
+              <p className="text-xs text-ink-muted">Signed in as</p>
+              <p className="truncate text-xs font-medium text-ink" title={userEmail}>{userEmail}</p>
             </div>
+            <button type="button" onClick={handleLogout} className="icon-btn hover:!bg-danger/10 hover:!text-danger" aria-label="Log out" title="Log out">
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="btn-secondary min-h-[34px] w-full text-xs flex items-center justify-center gap-1.5 text-danger hover:bg-danger/10 hover:border-danger/20"
-          >
-            <LogOut className="h-3.5 w-3.5" /> Log Out
-          </button>
         </div>
       </aside>
 
-      {/* Main Body */}
+      {/* Main body */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Header Bar */}
-        <header className="sticky top-0 z-30 flex min-h-[56px] flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur sm:px-6 md:h-14 md:flex-nowrap md:py-0">
-          {/* Mobile nav */}
-          <nav className="no-scrollbar order-2 flex w-full gap-1 overflow-x-auto rounded-xl border border-line bg-surface-2/50 p-1 md:order-1 md:hidden">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium ${
-                  (item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)) ? 'bg-accent-soft text-accent-ink font-semibold' : 'text-ink-muted'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="hidden md:flex items-center gap-2 text-2xs text-ink-muted">
-            <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_0_4px_rgb(var(--accent)/0.12)]" />
-            <span>Live catalogue workspace</span>
-          </div>
-
-          {/* Right Header Controls */}
-          <div className="order-1 ml-auto flex items-center gap-3 md:order-2">
-            <a
-              href={process.env.NEXT_PUBLIC_SITE_URL || 'https://estatenav.in'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-ghost min-h-[36px] px-3 text-xs flex items-center gap-1.5 text-ink-muted hover:text-ink"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> View Live Portal
+        <header className="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur">
+          <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
+            <Link href="/" className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-line md:hidden" aria-label="EstateNav admin overview">
+              <Image src="/logo.png" alt="" fill sizes="32px" className="object-cover" />
+            </Link>
+            <p className="min-w-0 flex-1 truncate text-sm text-ink-muted">
+              <span className="hidden sm:inline">EstateNav admin</span>
+              {current && (
+                <>
+                  <span aria-hidden="true" className="mx-2 hidden text-line-strong sm:inline">/</span>
+                  <span className="font-semibold text-ink">{current.label}</span>
+                </>
+              )}
+            </p>
+            <a href={SITE_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary min-h-[36px] px-3 text-xs">
+              <ExternalLink className="h-3.5 w-3.5" /> <span className="hidden sm:inline">View website</span><span className="sm:hidden">Website</span>
             </a>
+            <button type="button" onClick={handleLogout} className="icon-btn md:hidden" aria-label="Log out">
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
+
+          {/* Mobile navigation */}
+          <nav aria-label="Admin sections" className="no-scrollbar flex gap-1 overflow-x-auto border-t border-line px-3 py-2 md:hidden">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href, pathname);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium ${active ? 'bg-accent-soft font-semibold text-accent-ink' : 'text-ink-muted'}`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </header>
 
-        {/* Page Content */}
-        <main className="min-w-0 flex-1 p-4 sm:p-5 md:p-6"><div className="admin-content">{children}</div></main>
+        <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 md:py-7">
+          <div className="admin-content">{children}</div>
+        </main>
       </div>
     </div>
   );

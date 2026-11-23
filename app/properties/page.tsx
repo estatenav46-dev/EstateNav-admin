@@ -29,10 +29,9 @@ export default async function PropertiesPage({ searchParams }: { searchParams: R
   return (
     <AdminShell userEmail={session.email}>
       <div className="space-y-4">
-        <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface px-4 py-4 shadow-sm sm:px-5 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Catalogue</p>
-            <h1 className="text-2xl font-bold tracking-tight text-ink">Property listings</h1>
+            <h1 className="text-[1.65rem] font-semibold tracking-tight text-ink">Property listings</h1>
             <p className="mt-0.5 text-sm text-ink-muted">Bengaluru projects: pricing, unit types, floor plans, documents and verification details.</p>
           </div>
           <Link href="/properties/new" className="btn-primary w-full sm:w-auto">

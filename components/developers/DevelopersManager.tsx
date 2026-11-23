@@ -60,10 +60,9 @@ export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Catalogue</p>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Partners</h1>
+          <h1 className="text-[1.65rem] font-semibold tracking-tight text-ink">Partners</h1>
           <p className="mt-0.5 text-sm text-ink-muted">
             {developers.length} partners{hiddenCount ? ` · ${hiddenCount} hidden` : ''}. These are the partners offered when posting a property or uploading Excel. A hidden partner and all its listings are left off the website.
           </p>

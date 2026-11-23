@@ -75,8 +75,8 @@ export default async function DashboardPage() {
       value: counts.totalCorridors,
       total: 'Bengaluru areas',
       icon: Compass,
-      color: 'text-purple-600',
-      bg: 'bg-purple-500/10',
+      color: 'text-teal-700',
+      bg: 'bg-teal-500/10',
       href: '/corridors',
     },
   ];
@@ -85,10 +85,9 @@ export default async function DashboardPage() {
     <AdminShell userEmail={session.email}>
       <div className="space-y-7 md:space-y-8">
         {/* Header */}
-        <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface px-4 py-4 shadow-sm sm:px-5 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">EstateNav admin</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">Overview</h1>
+            <h1 className="text-[1.65rem] font-semibold tracking-tight text-ink">Overview</h1>
             <p className="mt-1 text-sm text-ink-muted">
               Live snapshot of EstateNav property listings, inquiries, and market metadata.
             </p>
@@ -200,7 +199,7 @@ export default async function DashboardPage() {
                                 : enq.status === 'contacted'
                                 ? 'bg-blue-500/10 text-blue-700'
                                 : enq.status === 'visit-scheduled'
-                                ? 'bg-purple-500/10 text-purple-700'
+                                ? 'bg-teal-500/10 text-teal-700'
                                 : 'bg-surface-2 text-ink-muted'
                             }`}
                           >
@@ -287,7 +286,7 @@ export default async function DashboardPage() {
                   className="flex items-center justify-between p-3 rounded-lg bg-surface-2/60 hover:bg-surface-2 border border-line text-xs font-semibold text-ink group transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <Compass className="w-4 h-4 text-purple-600" />
+                    <Compass className="w-4 h-4 text-teal-700" />
                     <span>Manage regions & areas</span>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-ink-muted group-hover:translate-x-1 transition-transform" />

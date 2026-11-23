@@ -14,10 +14,9 @@ export default async function BlogsPage() {
   return (
     <AdminShell userEmail={session.email}>
       <div className="space-y-5">
-        <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-ink">Content</p>
-            <h1 className="text-2xl font-bold tracking-tight text-ink">Blog</h1>
+            <h1 className="text-[1.65rem] font-semibold tracking-tight text-ink">Blog</h1>
             <p className="mt-0.5 text-sm text-ink-muted">Guides and market notes for the website blog. Star a post to feature it in the carousel at the top of the blog page and on the home page; with none starred, the newest post leads.</p>
           </div>
           <Link href="/blogs/new" className="btn-primary w-full sm:w-auto">

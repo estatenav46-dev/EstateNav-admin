@@ -35,17 +35,17 @@ export function BlogList({ posts }: { posts: BlogPost[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-2.5 sm:flex-row sm:items-center">
-        <div className="flex shrink-0 gap-1 rounded-lg bg-surface-2 p-0.5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex shrink-0 gap-0.5 rounded-[12px] bg-surface p-1 ring-1 ring-line">
           {(['all', 'published', 'draft'] as const).map((s) => (
-            <button key={s} type="button" onClick={() => setStatus(s)} className={`rounded-md px-2.5 py-1 text-xs font-semibold capitalize ${status === s ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'}`}>
-              {s} <span className="font-mono text-2xs opacity-70">{s === 'all' ? posts.length : posts.filter((p) => p.status === s).length}</span>
+            <button key={s} type="button" onClick={() => setStatus(s)} className={`rounded-[9px] px-3 py-1.5 text-sm font-semibold capitalize ${status === s ? 'bg-ink text-bg' : 'text-ink-muted hover:text-ink'}`}>
+              {s} <span className="text-xs opacity-70">{s === 'all' ? posts.length : posts.filter((p) => p.status === s).length}</span>
             </button>
           ))}
         </div>
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, category, tag…" className="field pl-8 text-xs" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, category, tag…" className="field pl-9" />
         </div>
       </div>
 
@@ -63,23 +63,23 @@ export function BlogList({ posts }: { posts: BlogPost[] }) {
       ) : (
         <ul className="panel divide-y divide-line overflow-hidden">
           {paged.rows.map((p) => (
-            <li key={p.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
-              <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg bg-surface-2">
-                {p.cover ? <Image src={p.cover.url} alt="" fill sizes="112px" className="object-cover" /> : <span className="flex h-full items-center justify-center text-2xs text-ink-muted">No cover</span>}
+            <li key={p.id} className="flex flex-col gap-3 p-4 transition-colors hover:bg-surface-2/40 sm:flex-row sm:items-center">
+              <div className="relative h-[4.5rem] w-32 shrink-0 overflow-hidden rounded-[10px] bg-surface-2">
+                {p.cover ? <Image src={p.cover.url} alt="" fill sizes="128px" className="object-cover" /> : <span className="flex h-full items-center justify-center text-xs text-ink-muted">No cover</span>}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${p.status === 'published' ? 'bg-accent-soft text-accent-ink' : 'bg-amber-500/10 text-amber-700'}`}>{p.status}</span>
+                  <span className={`pill capitalize ${p.status === 'published' ? 'pill-green' : 'pill-amber'}`}>{p.status}</span>
                   {p.featured && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+                    <span className="pill pill-amber">
                       <Star className="h-3 w-3 fill-current" /> Featured
                     </span>
                   )}
-                  <span className="text-2xs text-ink-muted">
+                  <span className="text-xs text-ink-muted">
                     {p.category} · {p.readMinutes} min read · {p.status === 'published' ? `published ${fmt(p.publishedAt)}` : `edited ${fmt(p.updatedAt)}`}
                   </span>
                 </div>
-                <Link href={`/blogs/${p.id}`} className="mt-0.5 block truncate text-sm font-semibold text-ink hover:text-accent-ink">
+                <Link href={`/blogs/${p.id}`} className="mt-1 block truncate text-[0.95rem] font-semibold text-ink hover:text-accent-ink">
                   {p.title}
                 </Link>
                 {p.excerpt && <p className="truncate text-xs text-ink-muted">{p.excerpt}</p>}
@@ -91,22 +91,22 @@ export function BlogList({ posts }: { posts: BlogPost[] }) {
                   onClick={() => run(() => setBlogFeaturedAction(p.id, !p.featured))}
                   aria-pressed={p.featured}
                   title={p.featured ? 'Featured: shown in the carousel on the website. Click to remove.' : 'Feature this post in the carousel on the website'}
-                  className={`rounded p-1.5 transition-colors ${p.featured ? 'text-amber-500 hover:bg-amber-500/10' : 'text-ink-muted hover:bg-surface-2 hover:text-amber-500'}`}
+                  className={`icon-btn ${p.featured ? '!text-amber-500 hover:!bg-amber-500/10' : 'hover:!text-amber-500'}`}
                 >
                   <Star className={`h-4 w-4 ${p.featured ? 'fill-current' : ''}`} />
                 </button>
-                <button type="button" disabled={pending} onClick={() => run(() => setBlogStatusAction(p.id, p.status === 'published' ? 'draft' : 'published'))} className="btn-secondary min-h-[32px] px-2.5 text-2xs">
+                <button type="button" disabled={pending} onClick={() => run(() => setBlogStatusAction(p.id, p.status === 'published' ? 'draft' : 'published'))} className="btn-secondary min-h-[36px] px-3 text-xs">
                   {p.status === 'published' ? 'Unpublish' : 'Publish'}
                 </button>
-                <Link href={`/blogs/${p.id}`} className="rounded p-1.5 text-ink-muted hover:bg-surface-2 hover:text-ink" title="Edit">
+                <Link href={`/blogs/${p.id}`} className="icon-btn" title="Edit" aria-label={`Edit ${p.title}`}>
                   <Edit className="h-4 w-4" />
                 </Link>
                 {p.status === 'published' && (
-                  <a href={`${SITE_URL}/blogs/${p.slug}`} target="_blank" rel="noopener noreferrer" className="rounded p-1.5 text-ink-muted hover:bg-surface-2 hover:text-ink" title="View on website">
+                  <a href={`${SITE_URL}/blogs/${p.slug}`} target="_blank" rel="noopener noreferrer" className="icon-btn" title="View on website" aria-label={`View ${p.title} on the website`}>
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
-                <button type="button" disabled={pending} onClick={() => confirm(`Delete "${p.title}" permanently?`) && run(() => deleteBlogAction(p.id))} className="rounded p-1.5 text-danger hover:bg-danger/10" title="Delete">
+                <button type="button" disabled={pending} onClick={() => confirm(`Delete "${p.title}" permanently?`) && run(() => deleteBlogAction(p.id))} className="icon-btn !text-danger hover:!bg-danger/10" title="Delete" aria-label={`Delete ${p.title}`}>
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>

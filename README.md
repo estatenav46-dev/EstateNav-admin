@@ -34,6 +34,14 @@ Only these partners can be chosen for listings: Abhee, Mana, Sobha, Bren, SNN Ra
 
 A partner's database record is created the first time a listing uses it. **Partners → Set up profile** adds the about text, website, logo and track record. A track-record fact appears on the website only when it has a source and a date.
 
+## Writing a blog post
+
+**Blog → Write a post** opens one writing column in the order a post is built: cover image, title, a short description, then the article (Write and Preview tabs; the toolbar adds headings, bold, lists, quotes, links, divider lines and images, and an image can be pasted straight in). The side card says what is still missing before publishing (title, cover image, at least 50 words, category), holds the category and the "Feature this post" switch, and on phones repeats Save draft and Publish. **More settings** keeps the optional parts: web address (made from the title, with an availability check), publish date, tags, author and role, read time (from the word count unless set by hand), related projects (up to 6) and the Google title and description. Leaving the page with unsaved changes asks first.
+
+## Look and feel
+
+Same palette and UI typeface (Geist, `app/fonts`) as the public website. Shared classes in `app/globals.css`: `.btn-primary` (main action), `.btn-secondary`, `.btn-ghost`, `.icon-btn` (row actions), `.field`, `.panel`, and `.pill` with `.pill-green` / `.pill-amber` / `.pill-grey` for statuses. Page titles are plain headings; the section name also shows in the top bar.
+
 ## Bulk import
 
 **Properties → Bulk upload.** Built for filling the sheet with an AI tool from the developer's brochure, cost sheet and floor-plan book.

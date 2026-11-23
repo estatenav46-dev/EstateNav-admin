@@ -16,15 +16,15 @@ export function SectionCard({ id, children, aside }: { id: SectionId; children: 
     <section id={`section-${id}`} aria-labelledby={`section-${id}-title`} className="panel scroll-mt-20 p-4 sm:p-5">
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-line pb-3">
         <div className="flex items-start gap-3">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-ink">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-accent-soft text-accent-ink">
             <Icon className="h-4 w-4" />
           </span>
           <div>
-            <p className="font-mono text-2xs font-semibold uppercase tracking-[0.12em] text-ink-muted">Step {index + 1}</p>
+            <p className="text-xs font-medium text-ink-muted">Step {index + 1}</p>
             <h2 id={`section-${id}-title`} className="text-base font-semibold text-ink">
               {section.label}
             </h2>
-            <p className="mt-0.5 text-2xs text-ink-muted">{section.description}</p>
+            <p className="mt-0.5 text-xs text-ink-muted">{section.description}</p>
           </div>
         </div>
         {aside}
