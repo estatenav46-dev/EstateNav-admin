@@ -172,6 +172,7 @@ export function buildPartner(p: ParsedPartner, existing: Developer | null, logo:
     constructionTech: (p.facts.constructionTech as string | undefined) ?? existing?.constructionTech ?? null,
     headquarters: p.headquarters ?? existing?.headquarters ?? null,
     hidden: existing?.hidden ?? false,
+    showOnLogoWall: existing?.showOnLogoWall ?? true,
     sources,
     website: p.website ?? existing?.website ?? null,
     logo: logo !== undefined ? logo : existing?.logo ?? null,

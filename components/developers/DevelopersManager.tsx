@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, BadgeCheck, Building2, Edit2, ExternalLink, Eye, EyeOff, Plus, Search, Trash2 } from 'lucide-react';
 import type { Developer } from '@/lib/data/types';
-import { deleteDeveloperAction, setDeveloperHiddenAction } from '@/app/actions/developers';
+import { deleteDeveloperAction, deleteDevelopersAction, setDeveloperHiddenAction } from '@/app/actions/developers';
 import { Modal } from '@/components/ui/Modal';
 import { DeveloperForm, blankDeveloper } from './DeveloperForm';
 import { BulkPartnerUpload } from './BulkPartnerUpload';
@@ -34,6 +34,32 @@ export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
       .sort((a, b) => Number(a.hidden) - Number(b.hidden) || a.name.localeCompare(b.name));
   }, [developers, query]);
   const hiddenCount = developers.filter((d) => d.hidden).length;
+  // Partners with listings cannot be deleted, so they cannot be selected either.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const deletable = shown.filter((d) => !(listingCounts[d.id] ?? 0));
+  const toggleSelect = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const allSelected = deletable.length > 0 && deletable.every((d) => selected.has(d.id));
+  const removeSelected = () => {
+    const ids = Array.from(selected);
+    const names = developers.filter((d) => selected.has(d.id)).map((d) => d.name);
+    if (!ids.length || !confirm(`Delete ${ids.length} partner${ids.length === 1 ? '' : 's'} permanently?\n\n${names.join(', ')}\n\nThis cannot be undone.`)) return;
+    start(async () => {
+      setProblem(null);
+      const res = await deleteDevelopersAction(ids);
+      if (!res.ok) return setProblem(res.message);
+      const gone = new Set(res.data.deleted);
+      setDevelopers((list) => list.filter((d) => !gone.has(d.id)));
+      setSelected(new Set());
+      if (res.data.kept.length) setProblem(`${res.data.kept.length} partner(s) still have listings and were kept: ${res.data.kept.join(', ')}.`);
+      router.refresh();
+    });
+  };
 
   const saved = (dev: Developer) => {
     setDevelopers((list) => (list.some((d) => d.id === dev.id) ? list.map((d) => (d.id === dev.id ? dev : d)) : [...list, dev]));
@@ -82,6 +108,26 @@ export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search partners…" className="field pl-8 text-xs" />
       </div>
 
+      {deletable.length > 0 && (
+        <div className={`flex flex-wrap items-center gap-3 rounded-xl border px-3 py-2 text-xs ${selected.size ? 'border-danger/30 bg-danger/5' : 'border-line bg-surface'}`}>
+          <label className="inline-flex cursor-pointer items-center gap-2 font-semibold text-ink">
+            <input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(deletable.map((d) => d.id)))} className="h-4 w-4 accent-[rgb(var(--accent))]" />
+            {selected.size ? `${selected.size} selected` : 'Select partners'}
+          </label>
+          <span className="text-ink-muted">Only partners without listings can be deleted.</span>
+          {selected.size > 0 && (
+            <span className="ml-auto flex gap-2">
+              <button type="button" onClick={() => setSelected(new Set())} className="btn-secondary min-h-[32px] px-3 text-2xs">
+                Clear
+              </button>
+              <button type="button" disabled={pending} onClick={removeSelected} className="btn-secondary min-h-[32px] border-danger/40 px-3 text-2xs text-danger hover:bg-danger/10">
+                <Trash2 className="h-3.5 w-3.5" /> Delete selected
+              </button>
+            </span>
+          )}
+        </div>
+      )}
+
       {problem && (
         <p className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 p-2.5 text-xs text-danger">
           <AlertCircle className="h-4 w-4 shrink-0" /> {problem}
@@ -101,8 +147,17 @@ export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
             ].filter(Boolean) as { label: string; ok: boolean }[];
             const count = listingCounts[dev.id] ?? 0;
             return (
-              <div key={dev.id} className={`panel flex flex-col p-4 transition-opacity ${dev.hidden ? 'opacity-60' : ''}`}>
+              <div key={dev.id} className={`panel flex flex-col p-4 transition-opacity ${dev.hidden ? 'opacity-60' : ''} ${selected.has(dev.id) ? 'ring-2 ring-danger/40' : ''}`}>
                 <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(dev.id)}
+                    disabled={count > 0}
+                    onChange={() => toggleSelect(dev.id)}
+                    aria-label={`Select ${dev.name}`}
+                    title={count > 0 ? 'Has listings: hide it instead, or move or delete its listings first.' : 'Select for deletion'}
+                    className="mt-3.5 h-4 w-4 shrink-0 accent-[rgb(var(--accent))] disabled:opacity-30"
+                  />
                   {dev.logo?.url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={dev.logo.url} alt={dev.name} className="h-11 w-11 shrink-0 rounded-lg border border-line bg-white object-contain p-1" />

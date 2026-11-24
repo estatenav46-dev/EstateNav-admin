@@ -7,7 +7,7 @@ import { Pager, usePaged } from '@/components/ui/Pager';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Copy, Edit, ExternalLink, Eye, EyeOff, FileText, Images, Layers, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import type { Corridor, Developer, Property, PublishStatus } from '@/lib/data/types';
-import { setStatusAction, setFeaturedAction, duplicatePropertyAction, deletePropertyAction, setHiddenAction } from '@/app/actions/properties';
+import { setStatusAction, setFeaturedAction, duplicatePropertyAction, deletePropertyAction, deletePropertiesAction, setHiddenAction } from '@/app/actions/properties';
 import { PROPERTY_TYPE_LABEL } from '@/lib/listingMeta';
 import { ZONE_OPTIONS, zoneLabel } from '@/components/corridors/CorridorForm';
 
@@ -58,6 +58,38 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
   });
 
   const paged = usePaged(filtered, JSON.stringify(filters), 'admin.properties.pageSize');
+
+  // Several listings at once: tick rows (or the header box for this page), then Delete selected.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const filterKey = JSON.stringify(filters);
+  useEffect(() => setSelected(new Set()), [filterKey]);
+  const pageIds = paged.rows.map((p) => p.id);
+  const pageAll = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const togglePage = () =>
+    setSelected((s) => {
+      const next = new Set(s);
+      pageIds.forEach((id) => (pageAll ? next.delete(id) : next.add(id)));
+      return next;
+    });
+  const deleteSelected = () => {
+    const ids = Array.from(selected);
+    const titles = properties.filter((p) => selected.has(p.id)).map((p) => p.title);
+    if (!ids.length) return;
+    const list = titles.slice(0, 12).join('\n• ') + (titles.length > 12 ? `\n…and ${titles.length - 12} more` : '');
+    if (!confirm(`Delete ${ids.length} listing${ids.length === 1 ? '' : 's'} permanently?\n\n• ${list}\n\nThis cannot be undone. Archive them instead if you may need them again.`)) return;
+    run(async () => {
+      const res = await deletePropertiesAction(ids);
+      if (res.ok) setSelected(new Set());
+      return res;
+    });
+  };
 
   const run = (fn: () => Promise<{ ok: boolean; message?: string; warning?: string }>) =>
     startTransition(async () => {
@@ -145,15 +177,36 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
         </div>
       )}
 
-      <p className="text-2xs text-ink-muted">
-        Showing {filtered.length} of {properties.length} listings{isPending ? ' · updating…' : ''}
-      </p>
+      <div className="flex min-h-[32px] flex-wrap items-center gap-3">
+        <p className="text-2xs text-ink-muted">
+          Showing {filtered.length} of {properties.length} listings{isPending ? ' · updating…' : ''}
+        </p>
+        {selected.size > 0 && (
+          <div className="ml-auto flex flex-wrap items-center gap-2 rounded-lg border border-danger/30 bg-danger/5 px-2.5 py-1 text-xs">
+            <span className="font-semibold text-ink">{selected.size} selected</span>
+            {selected.size < filtered.length && (
+              <button type="button" onClick={() => setSelected(new Set(filtered.map((p) => p.id)))} className="font-semibold text-accent-ink hover:underline">
+                Select all {filtered.length}
+              </button>
+            )}
+            <button type="button" onClick={() => setSelected(new Set())} className="btn-secondary min-h-[28px] px-2.5 text-2xs">
+              Clear
+            </button>
+            <button type="button" disabled={isPending} onClick={deleteSelected} className="btn-secondary min-h-[28px] border-danger/40 px-2.5 text-2xs text-danger hover:bg-danger/10">
+              <Trash2 className="h-3.5 w-3.5" /> Delete selected
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="panel overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-xs">
             <thead className="border-b border-line bg-surface-2 text-2xs uppercase tracking-wider text-ink-muted">
               <tr>
+                <th className="w-10 py-2.5 pl-3">
+                  <input type="checkbox" checked={pageAll} onChange={togglePage} disabled={!pageIds.length} aria-label="Select all listings on this page" className="h-4 w-4 accent-[rgb(var(--accent))]" />
+                </th>
                 <th className="px-3 py-2.5 font-semibold">Property</th>
                 <th className="px-3 py-2.5 font-semibold">Partner · Area</th>
                 <th className="px-3 py-2.5 font-semibold">Price</th>
@@ -166,7 +219,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
             <tbody className="divide-y divide-line">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-xs text-ink-muted">
+                  <td colSpan={8} className="px-4 py-10 text-center text-xs text-ink-muted">
                     {properties.length ? 'No listings match these filters.' : 'No listings yet. Post the first property or import an Excel sheet.'}
                   </td>
                 </tr>
@@ -174,7 +227,10 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
                 paged.rows.map((p) => {
                   const plans = p.configurations.filter((c) => c.floorPlanImageId).length;
                   return (
-                    <tr key={p.id} className={`transition-colors hover:bg-surface-2/40 ${p.hidden || hiddenDevs.has(p.developerId) ? 'opacity-60' : ''}`}>
+                    <tr key={p.id} className={`transition-colors hover:bg-surface-2/40 ${p.hidden || hiddenDevs.has(p.developerId) ? 'opacity-60' : ''} ${selected.has(p.id) ? 'bg-danger/5' : ''}`}>
+                      <td className="py-2.5 pl-3">
+                        <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} aria-label={`Select ${p.title}`} className="h-4 w-4 accent-[rgb(var(--accent))]" />
+                      </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-3">
                           <div className="relative h-10 w-14 shrink-0 overflow-hidden rounded-md bg-surface-2">

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth/session';
-import { createDeveloper, deleteDeveloper, saveDeveloper, setDeveloperHidden } from '@/lib/data/api';
+import { createDeveloper, deleteDeveloper, saveDeveloper, setDeveloperHidden, setDevelopersLogoWall } from '@/lib/data/api';
 import { triggerWebsiteRevalidation } from '@/lib/data/revalidate';
 import type { Developer } from '@/lib/data/types';
 
@@ -58,6 +58,42 @@ export async function setDeveloperHiddenAction(id: string, hidden: boolean): Pro
     return { ok: true, data: null };
   } catch (error) {
     return failure(error, 'Could not update the partner.');
+  }
+}
+
+/** Deletes several partners; partners that still have listings are kept and reported. */
+export async function deleteDevelopersAction(ids: string[]): Promise<Result<{ deleted: string[]; kept: string[] }>> {
+  try {
+    await requireAuth();
+    const list = z.array(z.string().min(1)).min(1).max(200).parse(ids);
+    const deleted: string[] = [];
+    const kept: string[] = [];
+    for (const id of list) {
+      try {
+        await deleteDeveloper(id);
+        deleted.push(id);
+      } catch {
+        kept.push(id);
+      }
+    }
+    if (deleted.length) await refresh();
+    return { ok: true, data: { deleted, kept } };
+  } catch (error) {
+    return failure(error, 'Could not delete the partners.');
+  }
+}
+
+/** Shows or hides partners on the website's channel-partner logo wall (the partners stay listed). */
+export async function setLogoWallAction(ids: string[], show: boolean): Promise<Result<null>> {
+  try {
+    await requireAuth();
+    await setDevelopersLogoWall(z.array(z.string().min(1)).min(1).max(200).parse(ids), show);
+    revalidatePath('/developers');
+    revalidatePath('/partner-logos');
+    await triggerWebsiteRevalidation('catalogue', '/');
+    return { ok: true, data: null };
+  } catch (error) {
+    return failure(error, 'Could not update the logo wall.');
   }
 }
 

@@ -3,13 +3,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, ExternalLink, Inbox, LayoutDashboard, LogOut, Map, Newspaper, Settings, Users } from 'lucide-react';
+import { BadgeCheck, Building2, ExternalLink, Inbox, LayoutDashboard, LogOut, Map, Newspaper, Settings, Users } from 'lucide-react';
 import { logoutAction } from '@/app/actions/auth';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Overview', icon: LayoutDashboard, group: 'Workspace' },
   { href: '/properties', label: 'Properties', icon: Building2, group: 'Catalogue' },
   { href: '/developers', label: 'Partners', icon: Users, group: 'Catalogue' },
+  { href: '/partner-logos', label: 'Channel partner logos', icon: BadgeCheck, group: 'Catalogue' },
   { href: '/corridors', label: 'Regions & areas', icon: Map, group: 'Catalogue' },
   { href: '/blogs', label: 'Blog', icon: Newspaper, group: 'Content' },
   { href: '/enquiries', label: 'Enquiries', icon: Inbox, group: 'Operations' },

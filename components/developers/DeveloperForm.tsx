@@ -30,6 +30,7 @@ export function blankDeveloper(name = ''): Developer {
     projectsDelivered: null,
     headquarters: null,
     hidden: false,
+    showOnLogoWall: true,
     sources: [],
     website: null,
     logo: null,

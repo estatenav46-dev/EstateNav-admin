@@ -280,6 +280,8 @@ export const developerSchema = z.object({
   headquarters: z.string().max(120).nullable().default(null),
   /** Hidden partners and all their listings are left off the website. */
   hidden: z.boolean().default(false),
+  /** Shown on the website's channel-partner logo wall (admin → Channel partner logos). */
+  showOnLogoWall: z.boolean().default(true),
   sources: z.array(z.object({ field: developerFactField, label: z.string().min(1), url: z.string().url().nullable(), asOf: isoDate })),
   website: z.string().url().nullable(),
   logo: imageRefSchema.nullable(),
@@ -371,7 +373,7 @@ export const blogPostSchema = z.object({
   cover: imageRefSchema.nullable().default(null),
   category: z.string().trim().min(1).max(60).default('Buying guides'),
   tags: z.array(z.string().trim().min(1).max(40)).max(12).default([]),
-  author: z.object({ name: z.string().trim().min(1).max(80), role: z.string().trim().max(80).default('') }).default({ name: 'SV Praveen', role: 'K-RERA registered agent' }),
+  author: z.object({ name: z.string().trim().min(1).max(80), role: z.string().trim().max(80).default('') }).default({ name: 'EstateNav Advisory', role: '' }),
   readMinutes: z.number().int().positive().max(120),
   featured: z.boolean().default(false),
   /** Listings mentioned in the post, shown as cards under the article. */

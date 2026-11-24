@@ -246,6 +246,15 @@ export async function deleteDeveloper(id: string): Promise<void> {
   await getDb().collection('developers').doc(id).delete();
 }
 
+/** Shows or hides partners' logos on the website's channel-partner logo wall. */
+export async function setDevelopersLogoWall(ids: string[], show: boolean): Promise<void> {
+  clearReadCache();
+  const db = getDb();
+  const batch = db.batch();
+  ids.forEach((id) => batch.update(db.collection('developers').doc(id), { showOnLogoWall: show }));
+  await batch.commit();
+}
+
 export async function setDeveloperHidden(id: string, hidden: boolean): Promise<void> {
   clearReadCache();
   await getDb().collection('developers').doc(id).update({ hidden });
@@ -278,6 +287,7 @@ export async function ensurePartnerRecord(id: string): Promise<{ developer: Deve
     projectsDelivered: null,
     headquarters: null,
     hidden: false,
+    showOnLogoWall: true,
     sources: [],
     website: null,
     logo: null,

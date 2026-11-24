@@ -34,7 +34,7 @@ export function emptyListingDetails(): Pick<Property, ListingDetailKey> {
 
 
 const CONSENT_TEXT =
-  'By submitting this form, you consent to registering your inquiry through SV Praveen, K-RERA registered agent and authorised channel partner. Communication will be coordinated under direct-developer pricing terms.';
+  'By submitting this form, you consent to EstateNav registering your enquiry through its K-RERA registered agent and authorised channel partner. Communication will be coordinated under direct-developer pricing terms.';
 
 /** Used when settings/site has not been created yet (matches the website's built-in defaults). */
 export const DEFAULT_SETTINGS: SiteSettings = {

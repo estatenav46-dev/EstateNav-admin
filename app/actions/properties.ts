@@ -145,6 +145,21 @@ export async function deletePropertyAction(id: string): Promise<Result<void>> {
   }
 }
 
+/** Deletes several listings at once and refreshes the website once. */
+export async function deletePropertiesAction(ids: string[]): Promise<Result<number>> {
+  try {
+    await requireAuth();
+    const list = z.array(z.string().min(1)).min(1).max(500).parse(ids);
+    for (const id of list) await deleteProperty(id);
+    revalidatePath('/properties');
+    revalidatePath('/');
+    const refreshed = await triggerWebsiteRevalidation('properties', '/');
+    return { ok: true, data: list.length, warning: refreshed ? undefined : REFRESH_WARNING.replace('Saved.', 'Deleted.') };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Failed to delete the listings.' };
+  }
+}
+
 /** Hides a listing from the website (or shows it again) without changing its status. */
 export async function setHiddenAction(id: string, hidden: boolean): Promise<Result<Property>> {
   try {

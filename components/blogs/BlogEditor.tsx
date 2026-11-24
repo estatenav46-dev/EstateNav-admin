@@ -30,7 +30,7 @@ function blankPost(): Draft {
     cover: null,
     category: 'Buying guides',
     tags: [],
-    author: { name: 'SV Praveen', role: 'K-RERA registered agent' },
+    author: { name: 'EstateNav Advisory', role: '' },
     readMinutes: 1,
     featured: false,
     relatedPropertyIds: [],
