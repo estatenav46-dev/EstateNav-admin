@@ -154,7 +154,7 @@ export interface ParsedWorkbook {
 
 // ---------- Reading cells ----------
 
-type Row = { row: number; get: (key: string) => Raw; link: (key: string) => string };
+export type Row = { row: number; get: (key: string) => Raw; link: (key: string) => string };
 
 function cellRaw(cell: ExcelJS.Cell): { value: Raw; link: string } {
   const v = cell.value as unknown;
@@ -196,7 +196,7 @@ const ALIASES: Record<string, string> = {
   type_of_document: 'document_type', url: 'file', link: 'file',
 };
 
-function readSheet(sheet: ExcelJS.Worksheet, spec: SheetSpec, notes: string[]): Row[] {
+export function readSheet(sheet: ExcelJS.Worksheet, spec: SheetSpec, notes: string[]): Row[] {
   const known = new Set(spec.columns.map((c) => c.key));
   // The header is the first row that contains a known column key (tolerates a title row above it).
   let headerRowNumber = 0;
@@ -236,7 +236,7 @@ function readSheet(sheet: ExcelJS.Worksheet, spec: SheetSpec, notes: string[]): 
   return rows;
 }
 
-const findSheet = (workbook: ExcelJS.Workbook, name: string) => {
+export const findSheet = (workbook: ExcelJS.Workbook, name: string) => {
   const target = name.toLowerCase().replace(/[\s_-]+/g, '');
   return workbook.worksheets.find((ws) => ws.name.toLowerCase().replace(/[\s_-]+/g, '') === target);
 };
@@ -343,7 +343,7 @@ function stripComments(buffer: ArrayBuffer): Uint8Array {
   return zipSync(out);
 }
 
-async function loadWorkbook(buffer: ArrayBuffer): Promise<ExcelJS.Workbook> {
+export async function loadWorkbook(buffer: ArrayBuffer): Promise<ExcelJS.Workbook> {
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(buffer);

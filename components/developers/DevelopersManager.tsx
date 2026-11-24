@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, BadgeCheck, Building2, Edit2, ExternalLink, Eye, EyeOff, Plus, Search, Trash2 } from 'lucide-react';
@@ -8,6 +8,7 @@ import type { Developer } from '@/lib/data/types';
 import { deleteDeveloperAction, setDeveloperHiddenAction } from '@/app/actions/developers';
 import { Modal } from '@/components/ui/Modal';
 import { DeveloperForm, blankDeveloper } from './DeveloperForm';
+import { BulkPartnerUpload } from './BulkPartnerUpload';
 
 interface Props {
   initialDevelopers: Developer[];
@@ -23,6 +24,8 @@ export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
   const [query, setQuery] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Fresh data after a bulk import or router.refresh().
+  useEffect(() => setDevelopers(initialDevelopers), [initialDevelopers]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -71,6 +74,8 @@ export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
           <Plus className="h-4 w-4" /> Add partner
         </button>
       </div>
+
+      <BulkPartnerUpload onDone={() => router.refresh()} />
 
       <div className="relative max-w-sm">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />

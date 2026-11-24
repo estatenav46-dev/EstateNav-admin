@@ -452,6 +452,38 @@ export async function resolveMedia(project: ParsedProject, propertyId: string, t
   };
 }
 
+// ---------------- One image from a link (partner logos) ----------------
+
+/**
+ * Copies one image (direct link or Google Drive file) into Cloudinary. Drive files are fetched in
+ * their original format first so transparent PNG and SVG logos stay transparent.
+ */
+export async function copyImageFromLink(link: string, folder: string, alt: string): Promise<ImageRef> {
+  const drive = driveId(link);
+  if (drive?.folder) throw new Error('a Drive folder was given; link the logo file itself');
+  const tries = drive ? [driveDownloadUrl(drive.id), driveImageUrl(drive.id)] : [link];
+  let lastError = 'could not be downloaded';
+  for (const url of tries) {
+    try {
+      const { bytes, type } = await download(url, 30 * 1024 * 1024);
+      if (!type.startsWith('image/') && !IMAGE_EXT.test(url.split('?')[0]) && !/\.svg(\?|$)/i.test(url)) {
+        lastError = 'the link is not an image (is it shared publicly?)';
+        continue;
+      }
+      if (bytes.byteLength > CLOUDINARY_MAX_BYTES) {
+        lastError = 'the image is larger than 10 MB';
+        continue;
+      }
+      const ext = type.includes('svg') ? 'svg' : type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
+      const up = await uploadBufferToCloudinary(bytes, `logo.${ext}`, folder);
+      return { id: up.publicId, storagePath: up.publicId, url: up.url, alt, width: up.width, height: up.height, blurDataURL: '', order: 0 };
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : lastError;
+    }
+  }
+  throw new Error(lastError);
+}
+
 // ---------------- Copying one candidate ----------------
 
 export type Copied = ({ kind: 'image'; image: ImageRef } | { kind: 'document'; document: PropertyDocument }) & { note?: string };
