@@ -50,6 +50,7 @@ export function unitLabel(u: ParsedUnit): string {
 
 /** Cuts at a word boundary. */
 const clip = (text: string, max: number) => (text.length <= max ? text : `${text.slice(0, max).replace(/\s+\S*$/, '')}`);
+const fitTitle = (text: string) => (text.length <= 65 ? text : '');
 const PROPERTY_NOUN: Partial<Record<Property['propertyType'], string>> = { villa: 'Villas', 'row-house': 'Row houses', villament: 'Villaments', office: 'Offices', retail: 'Retail spaces', plot: 'Plots' };
 
 const uid = (prefix: string, i: number) => `${prefix}-${Date.now().toString(36)}-${i}`;
@@ -274,7 +275,9 @@ export function buildDraft({ project, existing, developer, corridor, media }: Bu
     metrics: base?.metrics ?? null,
     commute: base?.commute ?? [],
     seo: {
-      title: f.seoTitle?.slice(0, 90) ?? existing?.seo.title ?? clip(`${title} | ${segment === 'plot' ? 'Plots' : configText || PROPERTY_NOUN[propertyType] || 'Homes'} in ${corridor.name}, Bengaluru`, 70),
+      // A generated title that would need cutting is left blank: the website then writes its own
+      // (project, area, "Bangalore", within 65 characters) instead of showing a clipped one.
+      title: f.seoTitle?.slice(0, 90) ?? existing?.seo.title ?? fitTitle(`${title} | ${segment === 'plot' ? 'Plots' : configText || PROPERTY_NOUN[propertyType] || 'Homes'} in ${corridor.name}, Bengaluru`),
       description: f.seoDescription?.slice(0, 200) ?? existing?.seo.description ?? clip(tagline || `${title} by ${developer.name} in ${corridor.name}, Bengaluru.`, 200),
       ogImageId: existing?.seo.ogImageId ?? null,
     },
