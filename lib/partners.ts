@@ -31,6 +31,31 @@ export function partnerOptions(developers: Developer[]): { id: string; name: str
     .map((d) => ({ id: d.id, name: d.name, hidden: d.hidden }));
 }
 
+/**
+ * A placeholder partner for a name that is not on the Partners page yet (from an Excel sheet or the
+ * "Add new partner" option). Known brands keep their usual ID; the details are filled in later.
+ */
+export function placeholderPartner(name: string, developers: Developer[]): Developer {
+  const clean = name.trim().replace(/\s+/g, ' ');
+  const brand = APPROVED_PARTNERS.find((p) => p.match.test(clean));
+  const base = brand?.id ?? (clean.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || `partner-${Date.now().toString(36)}`);
+  let id = base;
+  for (let n = 2; developers.some((d) => d.id === id); n++) id = `${base}-${n}`;
+  const display = brand?.name ?? clean;
+  return { id, name: display, legalName: display, about: '', yearsActive: null, sqftDelivered: null, constructionTech: null, projectsDelivered: null,
+    headquarters: null, hidden: false, showOnLogoWall: true, sources: [], website: null, logo: null };
+}
+
+/** Profile fields still empty, so the Partners page can flag partners that need details. */
+export function missingPartnerDetails(d: Developer): string[] {
+  const missing: string[] = [];
+  if (!d.about.trim()) missing.push('about');
+  if (!d.logo) missing.push('logo');
+  if (!d.website) missing.push('website');
+  if (!d.yearsActive && !d.projectsDelivered && !d.sqftDelivered) missing.push('track record');
+  return missing;
+}
+
 /** Finds a partner by ID, exact name, or a known brand name typed in a spreadsheet (e.g. "Sobha"). */
 export function findPartner(key: string, developers: Developer[]): Developer | null {
   const k = key.trim().toLowerCase();

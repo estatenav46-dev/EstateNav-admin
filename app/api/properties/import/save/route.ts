@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/session';
-import { createCorridor, ensurePartnerRecord, getPropertyBySlug, listCorridors, listDevelopers, saveProperty } from '@/lib/data/api';
+import { createCorridor, ensurePartnerRecord, getPropertyBySlug, listCorridors, listDevelopers, saveDeveloper, saveProperty } from '@/lib/data/api';
 import { imageRefSchema, propertyDocumentSchema } from '@/lib/data/schemas';
 import type { ParsedProject } from '@/lib/import/parse';
 import { lookupProject } from '@/lib/import/lookup';
@@ -36,7 +36,9 @@ export async function POST(request: Request) {
     const found = lookupProject(project, developers, corridors, body.developerId || undefined);
     if (found.errors.length || !found.developer || !found.corridor) return NextResponse.json({ message: found.errors.join(' ') || 'Partner or area missing.' }, { status: 400 });
 
-    const partner = await ensurePartnerRecord(found.developer.id);
+    // A partner named in the sheet but not on the Partners page is added as a placeholder to fill in later.
+    let partner = await ensurePartnerRecord(found.developer.id);
+    if (!partner && found.newDeveloper) partner = { developer: await saveDeveloper(found.newDeveloper), created: true };
     if (!partner) return NextResponse.json({ message: `Partner "${found.developer.name}" could not be found.` }, { status: 400 });
     let corridor = found.corridor;
     if (found.newCorridor) {
@@ -57,6 +59,8 @@ export async function POST(request: Request) {
       status: saved.status,
       created: !existing,
       areaCreated: Boolean(found.newCorridor),
+      partnerCreated: partner.created,
+      partnerName: partner.developer.name,
       warnings: [...project.warnings, ...warnings],
     });
   } catch (error) {

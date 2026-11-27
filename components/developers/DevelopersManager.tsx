@@ -7,21 +7,25 @@ import { AlertCircle, BadgeCheck, Building2, Edit2, ExternalLink, Eye, EyeOff, P
 import type { Developer } from '@/lib/data/types';
 import { deleteDeveloperAction, deleteDevelopersAction, setDeveloperHiddenAction } from '@/app/actions/developers';
 import { Modal } from '@/components/ui/Modal';
+import { missingPartnerDetails } from '@/lib/partners';
 import { DeveloperForm, blankDeveloper } from './DeveloperForm';
 import { BulkPartnerUpload } from './BulkPartnerUpload';
 
 interface Props {
   initialDevelopers: Developer[];
   listingCounts: Record<string, number>;
+  initialFilter?: 'all' | 'incomplete';
 }
 
 const fmtSqft = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M sq.ft` : `${n.toLocaleString('en-IN')} sq.ft`);
 
-export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
+export function DevelopersManager({ initialDevelopers, listingCounts, initialFilter = 'all' }: Props) {
   const router = useRouter();
   const [developers, setDevelopers] = useState<Developer[]>(initialDevelopers);
   const [editing, setEditing] = useState<{ developer: Developer; mode: 'create' | 'edit' } | null>(null);
   const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<'all' | 'incomplete'>(initialFilter);
+  const incompleteCount = developers.filter((d) => missingPartnerDetails(d).length > 0).length;
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, start] = useTransition();
   // Fresh data after a bulk import or router.refresh().
@@ -31,8 +35,10 @@ export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
     const q = query.trim().toLowerCase();
     return [...developers]
       .filter((d) => !q || `${d.name} ${d.legalName} ${d.id}`.toLowerCase().includes(q))
-      .sort((a, b) => Number(a.hidden) - Number(b.hidden) || a.name.localeCompare(b.name));
-  }, [developers, query]);
+      .filter((d) => filter === 'all' || missingPartnerDetails(d).length > 0)
+      // Partners with listings but no details come first, so they get filled in.
+      .sort((a, b) => Number(a.hidden) - Number(b.hidden) || (filter === 'incomplete' ? (listingCounts[b.id] ?? 0) - (listingCounts[a.id] ?? 0) : 0) || a.name.localeCompare(b.name));
+  }, [developers, query, filter, listingCounts]);
   const hiddenCount = developers.filter((d) => d.hidden).length;
   // Partners with listings cannot be deleted, so they cannot be selected either.
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -103,9 +109,19 @@ export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
 
       <BulkPartnerUpload onDone={() => router.refresh()} />
 
-      <div className="relative max-w-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="flex shrink-0 gap-1 rounded-lg border border-line bg-surface p-0.5" role="group" aria-label="Filter partners">
+        <button type="button" onClick={() => setFilter('all')} aria-pressed={filter === 'all'} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${filter === 'all' ? 'bg-ink text-bg' : 'text-ink-muted hover:text-ink'}`}>
+          All <span className="font-mono opacity-70">{developers.length}</span>
+        </button>
+        <button type="button" onClick={() => setFilter('incomplete')} aria-pressed={filter === 'incomplete'} className={`rounded-md px-2.5 py-1 text-xs font-semibold ${filter === 'incomplete' ? 'bg-amber-500 text-white' : 'text-ink-muted hover:text-ink'}`}>
+          Needs details <span className="font-mono opacity-70">{incompleteCount}</span>
+        </button>
+      </div>
+      <div className="relative w-full max-w-sm">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search partners…" className="field pl-8 text-xs" />
+      </div>
       </div>
 
       {deletable.length > 0 && (
@@ -170,11 +186,17 @@ export function DevelopersManager({ initialDevelopers, listingCounts }: Props) {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <h3 className="truncate text-sm font-bold text-ink">{dev.name}</h3>
                       {dev.hidden && <span className="rounded-full bg-ink/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-ink-muted">Hidden</span>}
+                      {missingPartnerDetails(dev).length > 0 && (
+                        <span title={`Missing: ${missingPartnerDetails(dev).join(', ')}`} className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-800">
+                          Needs details
+                        </span>
+                      )}
                     </div>
                     <p className="truncate font-mono text-2xs text-ink-muted">{dev.id}</p>
                   </div>
                 </div>
-                <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-xs text-ink-muted">{dev.about || 'No profile yet — click Edit to add the about text, website, logo and track record.'}</p>
+                <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-xs text-ink-muted">{dev.about || 'No profile yet — click Edit to add the about text, website, logo and track record.'}
+                  {dev.about && missingPartnerDetails(dev).length > 0 ? ` (Missing: ${missingPartnerDetails(dev).join(', ')}.)` : ''}</p>
                 {facts.length > 0 && (
                   <ul className="mt-2 flex flex-wrap gap-1.5">
                     {facts.map((f) => (

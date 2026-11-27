@@ -11,6 +11,7 @@ export async function POST() {
   if (!session) return NextResponse.json({ message: 'Your admin session has expired. Please sign in again.' }, { status: 401 });
   revalidatePath('/properties');
   revalidatePath('/corridors');
+  revalidatePath('/developers');
   revalidatePath('/');
   const [listings, catalogue] = await Promise.all([triggerWebsiteRevalidation('properties', '/'), triggerWebsiteRevalidation('catalogue')]);
   return NextResponse.json({ refreshed: listings && catalogue, warning: listings && catalogue ? undefined : REFRESH_WARNING });

@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, CheckCircle2, ClipboardCopy, Download, FileSpreadsheet, FolderOpen, Globe, ImagePlus, Loader2, RotateCcw, Upload, XCircle } from 'lucide-react';
 import { setStatusesAction } from '@/app/actions/properties';
+import { createDeveloperAction } from '@/app/actions/developers';
+import { partnerOptions, placeholderPartner } from '@/lib/partners';
 import type { Developer, ImageRef, PropertyDocument } from '@/lib/data/types';
-import { partnerOptions } from '@/lib/partners';
 import { inspectImage, uploadDocumentToCloudinary, uploadImageToCloudinary } from '@/lib/media';
 import type { PreviewProject } from '@/app/api/properties/import/route';
 import type { Candidate, Copied, ResolveResult } from '@/lib/import/media';
@@ -51,6 +52,10 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
   const [finishWarning, setFinishWarning] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [newPartners, setNewPartners] = useState<string[]>([]);
+  const [addingPartner, setAddingPartner] = useState(false);
+  const [addedPartners, setAddedPartners] = useState<Developer[]>([]);
+  const allPartners = useMemo(() => [...developers, ...addedPartners.filter((a) => !developers.some((d) => d.id === a.id))], [developers, addedPartners]);
   const [publishNote, setPublishNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
@@ -90,6 +95,7 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
     setError(null);
     setFinishWarning(null);
     setPublishNote(null);
+    setNewPartners([]);
   };
 
   const read = async () => {
@@ -198,15 +204,36 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
 
     // 3. Save.
     update(key, { step: 'Saving listing', messages: [...messages] });
-    const saved = await postJson<{ id: string; slug: string; status: string; created: boolean; areaCreated: boolean; warnings: string[] }>('/api/properties/import/save', {
+    const saved = await postJson<{ id: string; slug: string; status: string; created: boolean; areaCreated: boolean; partnerCreated?: boolean; partnerName?: string; warnings: string[] }>('/api/properties/import/save', {
       project: p,
       media,
       developerId: scope === 'partner' ? developerId : undefined,
     });
     messages.push(...saved.warnings);
+    if (saved.partnerCreated && saved.partnerName) {
+      const name = saved.partnerName;
+      messages.push(`New partner “${name}” was added to the Partners page.`);
+      setNewPartners((list) => (list.includes(name) ? list : [...list, name]));
+    }
     if (saved.areaCreated) messages.push(`New area “${p.fields.area}” was created in the ${p.fields.region} region.`);
     update(key, { state: 'done', step: saved.created ? `Created (${saved.status})` : `Updated (${saved.status})`, slug: saved.slug, id: saved.id, status: saved.status, messages: [...messages] });
   }
+
+  /** "+ Add new partner…" in the partner list: creates a placeholder to fill in on the Partners page. */
+  const addPartner = async () => {
+    const name = window.prompt('Name of the new partner (developer)?')?.trim();
+    if (!name) return;
+    const existing = allPartners.find((d) => d.name.toLowerCase() === name.toLowerCase());
+    if (existing) return setDeveloperId(existing.id);
+    setAddingPartner(true);
+    const res = await createDeveloperAction(placeholderPartner(name, allPartners));
+    setAddingPartner(false);
+    if (!res.ok) return setError(res.message);
+    setAddedPartners((list) => [...list, res.data]);
+    setDeveloperId(res.data.id);
+    setNewPartners((list) => [...list, res.data.name]);
+    router.refresh();
+  };
 
   const runImport = async () => {
     setPhase('importing');
@@ -296,9 +323,10 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
                       <option value="all">From the sheet</option>
                       <option value="partner">One partner for all rows</option>
                     </select>
-                    <select value={developerId} disabled={scope !== 'partner'} onChange={(e) => setDeveloperId(e.target.value)} className="field w-1/2 text-sm disabled:opacity-50">
-                      <option value="">Select partner</option>
-                      {partnerOptions(developers).map((partner) => <option key={partner.id} value={partner.id}>{partner.name}{partner.hidden ? ' (hidden)' : ''}</option>)}
+                    <select value={developerId} disabled={scope !== 'partner' || addingPartner} onChange={(e) => (e.target.value === '__new' ? addPartner() : setDeveloperId(e.target.value))} className="field w-1/2 text-sm disabled:opacity-50">
+                      <option value="">{addingPartner ? 'Adding partner…' : 'Select partner'}</option>
+                      {partnerOptions(allPartners).map((partner) => <option key={partner.id} value={partner.id}>{partner.name}{partner.hidden ? ' (hidden)' : ''}</option>)}
+                      <option value="__new">+ Add new partner…</option>
                     </select>
                   </div>
                 </div>
@@ -395,6 +423,12 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
                   )}
                 </div>
               )}
+              {newPartners.length > 0 && (
+                <p className="rounded-lg bg-violet-50 p-2 text-xs text-violet-900">
+                  New partner{newPartners.length === 1 ? '' : 's'} added: <span className="font-semibold">{newPartners.join(', ')}</span>.{' '}
+                  <Link href="/developers?filter=incomplete" className="font-semibold underline">Fill in the details on the Partners page →</Link>
+                </p>
+              )}
               {publishNote && <p className={`rounded-lg p-2 text-xs ${publishNote.ok ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900'}`}>{publishNote.text}</p>}
               {finishWarning && <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">{finishWarning}</p>}
               {notes.length > 0 && (
@@ -428,7 +462,8 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
                             {[f.name, f.phase].filter(Boolean).join(' · ') || '(no name)'} <span className="font-mono font-normal text-ink-muted">/{p.key}</span>
                           </p>
                           <p className="text-ink-muted">
-                            Row {p.row} · {p.partnerName ?? f.partner ?? '—'} · {p.areaName ?? f.area ?? '—'}
+                            Row {p.row} · {p.partnerName ?? f.partner ?? '—'}
+                            {p.partnerIsNew && <span className="ml-1 rounded bg-violet-100 px-1 text-violet-800">new partner</span>} · {p.areaName ?? f.area ?? '—'}
                             {p.areaIsNew && <span className="ml-1 rounded bg-sky-100 px-1 text-sky-800">new area</span>} · {p.existingId ? `updates the existing listing${p.existingPhotos ? ` (${p.existingPhotos} photos)` : ''}` : 'new listing'}
                           </p>
                           <p className="text-ink-muted">{[bhks, counts.join(' · '), mediaInfo ? `Photos from: ${mediaInfo}` : 'no photo source'].filter(Boolean).join(' — ')}</p>

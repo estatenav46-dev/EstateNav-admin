@@ -5,7 +5,7 @@ import { DevelopersManager } from '@/components/developers/DevelopersManager';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DevelopersPage() {
+export default async function DevelopersPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const session = await requireAuth();
   const [developers, properties] = await Promise.all([listDevelopers(), listProperties({ status: 'all' })]);
   const listingCounts: Record<string, number> = {};
@@ -13,7 +13,7 @@ export default async function DevelopersPage() {
 
   return (
     <AdminShell userEmail={session.email}>
-      <DevelopersManager initialDevelopers={developers} listingCounts={listingCounts} />
+      <DevelopersManager initialDevelopers={developers} listingCounts={listingCounts} initialFilter={searchParams.filter === 'incomplete' ? 'incomplete' : 'all'} />
     </AdminShell>
   );
 }

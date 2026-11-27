@@ -10,6 +10,7 @@ export const maxDuration = 60;
 export interface PreviewProject extends ParsedProject {
   partnerId: string | null;
   partnerName: string | null;
+  partnerIsNew: boolean;
   areaId: string | null;
   areaName: string | null;
   areaIsNew: boolean;
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
         errors: [...project.errors, ...found.errors],
         partnerId: found.developer?.id ?? null,
         partnerName: found.developer?.name ?? null,
+        partnerIsNew: Boolean(found.newDeveloper),
         areaId: found.corridor?.id ?? null,
         areaName: found.corridor?.name ?? null,
         areaIsNew: Boolean(found.newCorridor),

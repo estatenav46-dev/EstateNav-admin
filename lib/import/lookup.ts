@@ -1,5 +1,5 @@
 import type { Corridor, Developer } from '@/lib/data/types';
-import { findPartner } from '@/lib/partners';
+import { findPartner, placeholderPartner } from '@/lib/partners';
 import type { ParsedProject } from './parse';
 import { slugify } from './values';
 
@@ -37,6 +37,8 @@ export function newArea(name: string, region: NonNullable<ParsedProject['fields'
 export interface ProjectLookup {
   developer: Developer | null;
   corridor: Corridor | null;
+  /** Partner that will be created on save (a placeholder to fill in on the Partners page). */
+  newDeveloper: Developer | null;
   /** Area that will be created on save. */
   newCorridor: Corridor | null;
   errors: string[];
@@ -45,8 +47,16 @@ export interface ProjectLookup {
 export function lookupProject(project: ParsedProject, developers: Developer[], corridors: Corridor[], scopedDeveloperId?: string): ProjectLookup {
   const errors: string[] = [];
   const key = scopedDeveloperId || project.fields.partner;
-  const developer = key ? findPartner(key, developers) : null;
-  if (key && !developer) errors.push(`Partner "${key}" is not in the partner list. Add it on the Partners page, or use one of: ${developers.filter((d) => !d.hidden).map((d) => d.name).join(', ')}.`);
+  let developer = key ? findPartner(key, developers) : null;
+  let newDeveloper: Developer | null = null;
+  if (key && !developer) {
+    if (scopedDeveloperId) errors.push(`Partner "${key}" is no longer on the Partners page. Pick another partner.`);
+    else {
+      newDeveloper = placeholderPartner(key, developers);
+      developer = newDeveloper;
+      project.warnings.push(`New partner "${newDeveloper.name}" will be added to the Partners page; fill in its details (about, logo, website, track record) there.`);
+    }
+  }
   if (developer?.hidden) errors.push(`Partner "${developer.name}" is hidden; its listings would not show. Unhide it on the Partners page first.`);
 
   let corridor = findArea(project.fields.area, corridors);
@@ -62,5 +72,5 @@ export function lookupProject(project: ParsedProject, developers: Developer[], c
   if (corridor && !newCorridor && project.fields.region && corridor.zone && corridor.zone !== project.fields.region) {
     project.warnings.push(`Area ${corridor.name} is in the ${corridor.zone} region, not ${project.fields.region}; the area's region is used.`);
   }
-  return { developer, corridor, newCorridor, errors };
+  return { developer, newDeveloper, corridor, newCorridor, errors };
 }
