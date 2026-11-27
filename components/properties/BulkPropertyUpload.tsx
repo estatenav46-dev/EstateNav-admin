@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, CheckCircle2, ClipboardCopy, Download, FileSpreadsheet, FolderOpen, ImagePlus, Loader2, RotateCcw, Upload, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardCopy, Download, FileSpreadsheet, FolderOpen, Globe, ImagePlus, Loader2, RotateCcw, Upload, XCircle } from 'lucide-react';
+import { setStatusesAction } from '@/app/actions/properties';
 import type { Developer, ImageRef, PropertyDocument } from '@/lib/data/types';
 import { partnerOptions } from '@/lib/partners';
 import { inspectImage, uploadDocumentToCloudinary, uploadImageToCloudinary } from '@/lib/media';
@@ -49,6 +50,8 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
   const [runs, setRuns] = useState<Record<string, RunState>>({});
   const [finishWarning, setFinishWarning] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishNote, setPublishNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     if (window.location.hash === '#bulk-upload') setOpen(true);
@@ -86,6 +89,7 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
     setRuns({});
     setError(null);
     setFinishWarning(null);
+    setPublishNote(null);
   };
 
   const read = async () => {
@@ -232,6 +236,22 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
   const totals = Object.values(runs);
   const doneCount = totals.filter((r) => r.state === 'done').length;
   const failedCount = totals.filter((r) => r.state === 'failed').length;
+  const unpublished = Object.values(runs).filter((r) => r.state === 'done' && r.id && r.status !== 'published');
+
+  /** Final step: the imported listings stay drafts until this is pressed. */
+  const publishAll = async () => {
+    const ids = unpublished.map((r) => r.id!);
+    if (!ids.length || !confirm(`Publish ${ids.length} imported listing${ids.length === 1 ? '' : 's'} on the website now?`)) return;
+    setPublishing(true);
+    setPublishNote(null);
+    const res = await setStatusesAction(ids, 'published');
+    setPublishing(false);
+    if (!res.ok) return setPublishNote({ ok: false, text: res.message });
+    const changed = new Set(res.data.changed);
+    setRuns((all) => Object.fromEntries(Object.entries(all).map(([k, r]) => [k, r.id && changed.has(r.id) ? { ...r, status: 'published', step: r.step.replace(/\((draft|archived)\)/, '(published)') } : r])));
+    setPublishNote({ ok: !res.data.skipped.length, text: `${res.data.changed.length} listing${res.data.changed.length === 1 ? '' : 's'} published.${res.warning ? ` ${res.warning}` : ''}` });
+    router.refresh();
+  };
 
   return (
     <section id="bulk-upload" className="scroll-mt-24 rounded-xl border border-line bg-surface shadow-sm">
@@ -265,7 +285,7 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
               <ol className="grid gap-2 text-2xs text-ink-muted sm:grid-cols-3">
                 <li className="rounded-lg bg-surface-2/60 p-2.5"><span className="font-semibold text-ink">1. Fill the template.</span> Download it, then attach it with the brochure, cost sheet and floor-plan book to an AI tool together with the copied prompt, or fill it yourself.</li>
                 <li className="rounded-lg bg-surface-2/60 p-2.5"><span className="font-semibold text-ink">2. Photos.</span> Put a public Google Drive folder, ZIP or project-page link in <code>media_folder_link</code>, or attach images below (file names in the sheet, or a folder per project_key).</li>
-                <li className="rounded-lg bg-surface-2/60 p-2.5"><span className="font-semibold text-ink">3. Check and import.</span> You see every project, its units and any problems before anything is saved. New listings are saved as drafts unless the sheet says published.</li>
+                <li className="rounded-lg bg-surface-2/60 p-2.5"><span className="font-semibold text-ink">3. Check and import.</span> You see every project, its units and any problems before anything is saved. New listings are saved as drafts unless the sheet says published; publish them all with one click at the end.</li>
               </ol>
 
               <div className="grid gap-3 lg:grid-cols-2">
@@ -359,6 +379,23 @@ export function BulkPropertyUpload({ developers, defaultOpen = false }: { develo
                   <div className="h-full bg-accent transition-all" style={{ width: `${ready.length ? ((doneCount + failedCount) / ready.length) * 100 : 0}%` }} />
                 </div>
               )}
+              {phase === 'done' && doneCount > 0 && (
+                <div className="flex flex-col gap-2 rounded-xl border border-accent/30 bg-accent-soft/60 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-ink">
+                    {unpublished.length ? (
+                      <><span className="font-semibold">{unpublished.length} listing{unpublished.length === 1 ? ' is' : 's are'} saved as draft{unpublished.length === 1 ? '' : 's'}</span> and not on the website yet. Review them if you like, then publish.</>
+                    ) : (
+                      <span className="font-semibold">All imported listings are published.</span>
+                    )}
+                  </p>
+                  {unpublished.length > 0 && (
+                    <button type="button" onClick={publishAll} disabled={publishing} className="btn-primary shrink-0 text-xs disabled:opacity-50">
+                      {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />} {publishing ? 'Publishing…' : `Publish ${unpublished.length} listing${unpublished.length === 1 ? '' : 's'}`}
+                    </button>
+                  )}
+                </div>
+              )}
+              {publishNote && <p className={`rounded-lg p-2 text-xs ${publishNote.ok ? 'bg-emerald-50 text-emerald-900' : 'bg-amber-50 text-amber-900'}`}>{publishNote.text}</p>}
               {finishWarning && <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">{finishWarning}</p>}
               {notes.length > 0 && (
                 <ul className="list-disc space-y-0.5 rounded-lg bg-amber-50 p-2 pl-6 text-xs text-amber-900">

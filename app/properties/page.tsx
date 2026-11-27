@@ -24,6 +24,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: R
     corridor: pick(searchParams.corridor),
     segment: pick(searchParams.segment, ['residential', 'plot', 'commercial']),
     q: typeof searchParams.q === 'string' ? searchParams.q : '',
+    view: searchParams.view === 'partners' ? 'partners' : 'list',
   };
 
   return (

@@ -171,3 +171,38 @@ export async function setHiddenAction(id: string, hidden: boolean): Promise<Resu
     return { ok: false, message: error instanceof Error ? error.message : 'Could not update the listing.' };
   }
 }
+
+/**
+ * Publishes (or changes the status of) several listings at once and refreshes the website once.
+ * Listings without a photo are left as they are and reported back, since the website needs a cover.
+ */
+export async function setStatusesAction(ids: string[], status: PublishStatus): Promise<Result<{ changed: string[]; skipped: string[] }>> {
+  try {
+    const session = await requireAuth();
+    const list = z.array(z.string().min(1)).min(1).max(500).parse(ids);
+    const validated = publishStatusSchema.parse(status);
+    const changed: string[] = [];
+    const skipped: string[] = [];
+    for (const id of list) {
+      const current = await getPropertyById(id);
+      if (!current) continue;
+      if (current.status === validated) {
+        changed.push(id);
+        continue;
+      }
+      if (validated === 'published' && current.media.gallery.length === 0) {
+        skipped.push(current.title);
+        continue;
+      }
+      await setPropertyStatus(id, validated, session.email);
+      changed.push(id);
+    }
+    revalidatePath('/properties');
+    revalidatePath('/');
+    const refreshed = await triggerWebsiteRevalidation('properties', '/');
+    const notes = [skipped.length ? `${skipped.length} listing${skipped.length === 1 ? ' has' : 's have'} no photo and stayed unpublished: ${skipped.slice(0, 8).join(', ')}${skipped.length > 8 ? '…' : ''}.` : '', refreshed ? '' : REFRESH_WARNING].filter(Boolean);
+    return { ok: true, data: { changed, skipped }, warning: notes.join(' ') || undefined };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Failed to update the listings.' };
+  }
+}

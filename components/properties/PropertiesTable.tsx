@@ -5,15 +5,17 @@ import Image from 'next/image';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Pager, usePaged } from '@/components/ui/Pager';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, Copy, Edit, ExternalLink, Eye, EyeOff, FileText, Images, Layers, Plus, Search, Star, Trash2, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Building2, Copy, Edit, ExternalLink, Eye, EyeOff, FileText, Globe, Images, LayoutGrid, Layers, List, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import type { Corridor, Developer, Property, PublishStatus } from '@/lib/data/types';
-import { setStatusAction, setFeaturedAction, duplicatePropertyAction, deletePropertyAction, deletePropertiesAction, setHiddenAction } from '@/app/actions/properties';
+import { setStatusAction, setFeaturedAction, duplicatePropertyAction, deletePropertyAction, deletePropertiesAction, setHiddenAction, setStatusesAction } from '@/app/actions/properties';
 import { PROPERTY_TYPE_LABEL } from '@/lib/listingMeta';
 import { ZONE_OPTIONS, zoneLabel } from '@/components/corridors/CorridorForm';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://estatenav.in').replace(/\/$/, '');
 
-export type TableFilters = { status: string; region: string; developer: string; corridor: string; segment: string; q: string };
+export type TableFilters = { status: string; region: string; developer: string; corridor: string; segment: string; q: string; view?: string };
+
+type PartnerSort = 'count' | 'name' | 'drafts';
 
 const formatPrice = (p: number) => {
   if (p >= 10000000) return `₹${(p / 10000000).toFixed(2).replace(/\.?0+$/, '')} Cr`;
@@ -31,7 +33,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
   // Keep filters in the address bar so links and the back button work.
   useEffect(() => {
     const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => value && value !== 'all' && params.set(key === 'developer' ? 'developer' : key, value));
+    Object.entries(filters).forEach(([key, value]) => value && value !== 'all' && value !== 'list' && params.set(key, value));
     const qs = params.toString();
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
   }, [filters]);
@@ -91,6 +93,36 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
     });
   };
 
+  const publishSelected = () => {
+    const ids = Array.from(selected);
+    if (!ids.length || !confirm(`Publish ${ids.length} listing${ids.length === 1 ? '' : 's'} on the website?`)) return;
+    run(async () => {
+      const res = await setStatusesAction(ids, 'published');
+      if (res.ok) setSelected(new Set());
+      return res;
+    });
+  };
+
+  // Partner view: one card per partner, click to see that partner's listings.
+  const [partnerSort, setPartnerSort] = useState<PartnerSort>('count');
+  const devById = useMemo(() => new Map(developers.map((d) => [d.id, d])), [developers]);
+  const partnerCards = useMemo(() => {
+    const groups = new Map<string, { id: string; name: string; logo: string | null; hidden: boolean; total: number; published: number; draft: number; archived: number; covers: string[] }>();
+    properties.forEach((p) => {
+      const dev = devById.get(p.developerId);
+      const g = groups.get(p.developerId) ?? { id: p.developerId, name: dev?.name ?? p.developerName, logo: dev?.logo?.url ?? null, hidden: !!dev?.hidden, total: 0, published: 0, draft: 0, archived: 0, covers: [] };
+      g.total += 1;
+      g[p.status] += 1;
+      if (p.media.gallery.length && g.covers.length < 3) g.covers.push(p.media.cover.url);
+      groups.set(p.developerId, g);
+    });
+    const q = filters.q.trim().toLowerCase();
+    const list = Array.from(groups.values()).filter((g) => !q || g.name.toLowerCase().includes(q));
+    return list.sort((a, b) => (partnerSort === 'name' ? a.name.localeCompare(b.name) : partnerSort === 'drafts' ? b.draft - a.draft || a.name.localeCompare(b.name) : b.total - a.total || a.name.localeCompare(b.name)));
+  }, [properties, devById, partnerSort, filters.q]);
+  const view = filters.view === 'partners' ? 'partners' : 'list';
+  const openPartner = (id: string) => setFilters((f) => ({ ...f, view: 'list', developer: id, region: 'all', corridor: 'all', q: '' }));
+
   const run = (fn: () => Promise<{ ok: boolean; message?: string; warning?: string }>) =>
     startTransition(async () => {
       setProblem(null);
@@ -102,8 +134,88 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
 
   const active = filters.region !== 'all' || filters.developer !== 'all' || filters.corridor !== 'all' || filters.segment !== 'all' || filters.q;
 
+  const viewToggle = (
+    <div className="flex shrink-0 gap-1 rounded-lg border border-line bg-surface p-0.5" role="group" aria-label="View">
+      <button type="button" onClick={() => set({ view: 'list' })} aria-pressed={view === 'list'} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold ${view === 'list' ? 'bg-ink text-bg' : 'text-ink-muted hover:text-ink'}`}>
+        <List className="h-3.5 w-3.5" /> All listings
+      </button>
+      <button type="button" onClick={() => set({ view: 'partners', q: '' })} aria-pressed={view === 'partners'} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold ${view === 'partners' ? 'bg-ink text-bg' : 'text-ink-muted hover:text-ink'}`}>
+        <LayoutGrid className="h-3.5 w-3.5" /> By partner
+      </button>
+    </div>
+  );
+
+  if (view === 'partners') {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {viewToggle}
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
+            <input type="search" value={filters.q} onChange={(e) => set({ q: e.target.value })} placeholder="Find a partner…" className="field pl-8 text-xs" />
+          </div>
+          <select value={partnerSort} onChange={(e) => setPartnerSort(e.target.value as PartnerSort)} className="field text-xs sm:w-48" aria-label="Sort partners">
+            <option value="count">Most listings first</option>
+            <option value="name">Name A–Z</option>
+            <option value="drafts">Most drafts first</option>
+          </select>
+        </div>
+        <p className="text-2xs text-ink-muted">{partnerCards.length} partner{partnerCards.length === 1 ? '' : 's'} · {properties.length} listings. Click a partner to see its listings.</p>
+        {partnerCards.length === 0 ? (
+          <p className="panel px-4 py-10 text-center text-xs text-ink-muted">{properties.length ? 'No partner matches that search.' : 'No listings yet.'}</p>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {partnerCards.map((g) => (
+              <li key={g.id}>
+                <button type="button" onClick={() => openPartner(g.id)} className={`group flex h-full w-full flex-col overflow-hidden rounded-xl border border-line bg-surface text-left shadow-sm transition hover:border-accent hover:shadow-md ${g.hidden ? 'opacity-60' : ''}`}>
+                  <div className="grid h-24 grid-cols-3 gap-px bg-line">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="relative bg-surface-2">
+                        {g.covers[i] && <Image src={g.covers[i]} alt="" fill sizes="120px" className="object-cover" />}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2 p-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-white">
+                        {g.logo ? <Image src={g.logo} alt="" fill sizes="36px" className="object-contain p-1" /> : <Building2 className="h-4 w-4 text-ink-muted" />}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-ink group-hover:text-accent-ink">{g.name}</p>
+                        <p className="text-2xs text-ink-muted">{g.total} listing{g.total === 1 ? '' : 's'}{g.hidden ? ' · partner hidden' : ''}</p>
+                      </div>
+                    </div>
+                    <div className="mt-auto flex flex-wrap gap-1.5 text-2xs font-semibold">
+                      {g.published > 0 && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-accent-ink">{g.published} published</span>}
+                      {g.draft > 0 && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-800">{g.draft} draft</span>}
+                      {g.archived > 0 && <span className="rounded-full bg-danger/10 px-2 py-0.5 text-danger">{g.archived} archived</span>}
+                    </div>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
+  const partnerName = filters.developer !== 'all' ? devById.get(filters.developer)?.name ?? properties.find((p) => p.developerId === filters.developer)?.developerName : null;
+
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        {viewToggle}
+        {partnerName && (
+          <span className="inline-flex items-center gap-2 text-xs">
+            <button type="button" onClick={() => set({ view: 'partners', developer: 'all' })} className="inline-flex items-center gap-1 font-semibold text-accent-ink hover:underline">
+              <ArrowLeft className="h-3.5 w-3.5" /> All partners
+            </button>
+            <span className="text-ink-muted">/</span>
+            <span className="font-semibold text-ink">{partnerName}</span>
+          </span>
+        )}
+      </div>
       <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-0.5" role="group" aria-label="Region">
         <button type="button" onClick={() => set({ region: 'all', corridor: 'all' })} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${filters.region === 'all' ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink'}`}>
           All properties <span className="ml-0.5 font-mono opacity-70">{properties.length}</span>
@@ -165,7 +277,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
           </select>
         </div>
         {active && (
-          <button type="button" onClick={() => setFilters({ ...initialFilters, status: filters.status, region: 'all', developer: 'all', corridor: 'all', segment: 'all', q: '' })} className="btn-ghost shrink-0 px-2 text-xs text-ink-muted">
+          <button type="button" onClick={() => setFilters({ ...initialFilters, view: 'list', status: filters.status, region: 'all', developer: 'all', corridor: 'all', segment: 'all', q: '' })} className="btn-ghost shrink-0 px-2 text-xs text-ink-muted">
             <X className="h-3.5 w-3.5" /> Clear
           </button>
         )}
@@ -182,7 +294,7 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
           Showing {filtered.length} of {properties.length} listings{isPending ? ' · updating…' : ''}
         </p>
         {selected.size > 0 && (
-          <div className="ml-auto flex flex-wrap items-center gap-2 rounded-lg border border-danger/30 bg-danger/5 px-2.5 py-1 text-xs">
+          <div className="ml-auto flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2/60 px-2.5 py-1 text-xs">
             <span className="font-semibold text-ink">{selected.size} selected</span>
             {selected.size < filtered.length && (
               <button type="button" onClick={() => setSelected(new Set(filtered.map((p) => p.id)))} className="font-semibold text-accent-ink hover:underline">
@@ -191,6 +303,9 @@ export function PropertiesTable({ properties, corridors, developers, initialFilt
             )}
             <button type="button" onClick={() => setSelected(new Set())} className="btn-secondary min-h-[28px] px-2.5 text-2xs">
               Clear
+            </button>
+            <button type="button" disabled={isPending} onClick={publishSelected} className="btn-secondary min-h-[28px] border-accent/40 px-2.5 text-2xs text-accent-ink hover:bg-accent-soft">
+              <Globe className="h-3.5 w-3.5" /> Publish selected
             </button>
             <button type="button" disabled={isPending} onClick={deleteSelected} className="btn-secondary min-h-[28px] border-danger/40 px-2.5 text-2xs text-danger hover:bg-danger/10">
               <Trash2 className="h-3.5 w-3.5" /> Delete selected
