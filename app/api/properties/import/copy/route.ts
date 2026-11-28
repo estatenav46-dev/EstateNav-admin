@@ -1,3 +1,4 @@
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { copyCandidate, type Candidate, type Copied } from '@/lib/import/media';
@@ -17,12 +18,12 @@ export async function POST(request: Request) {
         try {
           return { ok: true, copied: await copyCandidate(item, body.propertyId, String(body.title).slice(0, 140), item.order ?? 0) };
         } catch (error) {
-          return { ok: false, error: error instanceof Error ? error.message : `${item.name}: could not be copied` };
+          return { ok: false, error: dbErrorMessage(error, `${item.name}: could not be copied`) };
         }
       }),
     );
     return NextResponse.json({ results });
   } catch (error) {
-    return NextResponse.json({ message: error instanceof Error ? error.message : 'Copy failed.' }, { status: 500 });
+    return NextResponse.json({ message: dbErrorMessage(error, 'Copy failed.') }, { status: 500 });
   }
 }

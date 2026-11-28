@@ -1,3 +1,4 @@
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { listCorridors, listDevelopers, listProperties } from '@/lib/data/api';
@@ -60,6 +61,6 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ projects: preview, notes });
   } catch (error) {
-    return NextResponse.json({ message: error instanceof Error ? error.message : 'The workbook could not be read.' }, { status: 400 });
+    return NextResponse.json({ message: dbErrorMessage(error, 'The workbook could not be read.') }, { status: 400 });
   }
 }

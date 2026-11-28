@@ -1,5 +1,6 @@
 'use server';
 
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth/session';
@@ -13,7 +14,7 @@ function failure(error: unknown, fallback: string): Result<never> {
   if (error instanceof z.ZodError) {
     return { ok: false, message: 'Some fields need attention.', issues: error.issues.map((i) => `${i.path.join('.') || 'area'}: ${i.message}`) };
   }
-  return { ok: false, message: error instanceof Error ? error.message : fallback };
+  return { ok: false, message: dbErrorMessage(error, fallback) };
 }
 
 async function refresh() {

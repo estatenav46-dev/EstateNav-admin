@@ -1,5 +1,6 @@
 'use server';
 
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth/session';
@@ -84,7 +85,7 @@ export async function savePropertyAction(input: unknown, status: PublishStatus):
     return { ok: true, data, warning: refreshed ? undefined : REFRESH_WARNING };
   } catch (error) {
     if (error instanceof z.ZodError) return zodResult(error);
-    return { ok: false, message: error instanceof Error ? error.message : 'Failed to save property.' };
+    return { ok: false, message: dbErrorMessage(error, 'Failed to save property.') };
   }
 }
 
@@ -107,7 +108,7 @@ export async function setStatusAction(id: string, status: PublishStatus): Promis
     const refreshed = await refresh(data);
     return { ok: true, data, warning: refreshed ? undefined : REFRESH_WARNING };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Failed to update status.' };
+    return { ok: false, message: dbErrorMessage(error, 'Failed to update status.') };
   }
 }
 
@@ -118,7 +119,7 @@ export async function setFeaturedAction(id: string, featured: boolean): Promise<
     const refreshed = await refresh(data);
     return { ok: true, data, warning: refreshed ? undefined : REFRESH_WARNING };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Failed to update featured flag.' };
+    return { ok: false, message: dbErrorMessage(error, 'Failed to update featured flag.') };
   }
 }
 
@@ -129,7 +130,7 @@ export async function duplicatePropertyAction(id: string): Promise<Result<Proper
     revalidatePath('/properties');
     return { ok: true, data };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Failed to duplicate property.' };
+    return { ok: false, message: dbErrorMessage(error, 'Failed to duplicate property.') };
   }
 }
 
@@ -141,7 +142,7 @@ export async function deletePropertyAction(id: string): Promise<Result<void>> {
     const refreshed = await refresh(existing);
     return { ok: true, data: undefined, warning: refreshed ? undefined : REFRESH_WARNING.replace('Saved.', 'Deleted.') };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Failed to delete property.' };
+    return { ok: false, message: dbErrorMessage(error, 'Failed to delete property.') };
   }
 }
 
@@ -156,7 +157,7 @@ export async function deletePropertiesAction(ids: string[]): Promise<Result<numb
     const refreshed = await triggerWebsiteRevalidation('properties', '/');
     return { ok: true, data: list.length, warning: refreshed ? undefined : REFRESH_WARNING.replace('Saved.', 'Deleted.') };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Failed to delete the listings.' };
+    return { ok: false, message: dbErrorMessage(error, 'Failed to delete the listings.') };
   }
 }
 
@@ -168,7 +169,7 @@ export async function setHiddenAction(id: string, hidden: boolean): Promise<Resu
     const refreshed = await refresh(data);
     return { ok: true, data, warning: refreshed ? undefined : REFRESH_WARNING };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Could not update the listing.' };
+    return { ok: false, message: dbErrorMessage(error, 'Could not update the listing.') };
   }
 }
 
@@ -203,6 +204,6 @@ export async function setStatusesAction(ids: string[], status: PublishStatus): P
     const notes = [skipped.length ? `${skipped.length} listing${skipped.length === 1 ? ' has' : 's have'} no photo and stayed unpublished: ${skipped.slice(0, 8).join(', ')}${skipped.length > 8 ? '…' : ''}.` : '', refreshed ? '' : REFRESH_WARNING].filter(Boolean);
     return { ok: true, data: { changed, skipped }, warning: notes.join(' ') || undefined };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Failed to update the listings.' };
+    return { ok: false, message: dbErrorMessage(error, 'Failed to update the listings.') };
   }
 }

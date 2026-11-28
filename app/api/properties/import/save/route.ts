@@ -1,3 +1,4 @@
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/session';
@@ -67,6 +68,6 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ message: `Some values are not valid: ${error.issues.slice(0, 6).map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}` }, { status: 400 });
     }
-    return NextResponse.json({ message: error instanceof Error ? error.message : 'The project could not be saved.' }, { status: 500 });
+    return NextResponse.json({ message: dbErrorMessage(error, 'The project could not be saved.') }, { status: 500 });
   }
 }

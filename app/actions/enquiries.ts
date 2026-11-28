@@ -1,5 +1,6 @@
 'use server';
 
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth/session';
@@ -24,7 +25,7 @@ export async function updateEnquiryAction(
     revalidatePath('/');
     return { ok: true, data };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Failed to update enquiry.' };
+    return { ok: false, message: dbErrorMessage(error, 'Failed to update enquiry.') };
   }
 }
 

@@ -1,3 +1,4 @@
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
       try {
         logo = await copyImageFromLink(p.logo, `developers/${existing?.id ?? p.id}`, `${p.name} logo`);
       } catch (error) {
-        warnings.push(`Logo not added: ${error instanceof Error ? error.message : 'could not be copied'}.`);
+        warnings.push(`Logo not added: ${dbErrorMessage(error, 'could not be copied')}.`);
       }
     }
 
@@ -40,6 +41,6 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ message: `Some values are not valid: ${error.issues.slice(0, 5).map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}` }, { status: 400 });
     }
-    return NextResponse.json({ message: error instanceof Error ? error.message : 'The partner could not be saved.' }, { status: 500 });
+    return NextResponse.json({ message: dbErrorMessage(error, 'The partner could not be saved.') }, { status: 500 });
   }
 }

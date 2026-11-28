@@ -1,5 +1,6 @@
 'use server';
 
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth/session';
@@ -35,7 +36,7 @@ export async function saveBlogAction(input: unknown, status: BlogPost['status'])
     return { ok: true, data };
   } catch (error) {
     if (error instanceof z.ZodError) return { ok: false, message: 'Some fields need attention.', issues: error.issues.map((i) => `${i.path.join('.')}: ${i.message}`) };
-    return { ok: false, message: error instanceof Error ? error.message : 'Could not save the post.' };
+    return { ok: false, message: dbErrorMessage(error, 'Could not save the post.') };
   }
 }
 
@@ -52,7 +53,7 @@ export async function deleteBlogAction(id: string): Promise<Result<null>> {
     await refresh(existing);
     return { ok: true, data: null };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Could not delete the post.' };
+    return { ok: false, message: dbErrorMessage(error, 'Could not delete the post.') };
   }
 }
 
@@ -67,7 +68,7 @@ export async function setBlogStatusAction(id: string, status: BlogPost['status']
     await refresh(data);
     return { ok: true, data };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Could not update the post.' };
+    return { ok: false, message: dbErrorMessage(error, 'Could not update the post.') };
   }
 }
 
@@ -82,6 +83,6 @@ export async function setBlogFeaturedAction(id: string, featured: boolean): Prom
     await refresh(data);
     return { ok: true, data };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Could not update the post.' };
+    return { ok: false, message: dbErrorMessage(error, 'Could not update the post.') };
   }
 }

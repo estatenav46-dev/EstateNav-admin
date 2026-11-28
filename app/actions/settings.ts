@@ -1,5 +1,6 @@
 'use server';
 
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth/session';
@@ -25,7 +26,7 @@ export async function saveSettingsAction(input: unknown): Promise<Result<SiteSet
         issues: error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
       };
     }
-    return { ok: false, message: error instanceof Error ? error.message : 'Failed to save settings.' };
+    return { ok: false, message: dbErrorMessage(error, 'Failed to save settings.') };
   }
 }
 

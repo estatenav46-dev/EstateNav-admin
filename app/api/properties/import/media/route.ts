@@ -1,3 +1,4 @@
+import { dbErrorMessage } from '@/lib/data/dbErrors';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { resolveMedia } from '@/lib/import/media';
@@ -16,6 +17,6 @@ export async function POST(request: Request) {
     const result = await resolveMedia(body.project, body.propertyId, String(body.title || body.project.key).slice(0, 140), { images: body.images !== false });
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ message: error instanceof Error ? error.message : 'Media could not be read.' }, { status: 500 });
+    return NextResponse.json({ message: dbErrorMessage(error, 'Media could not be read.') }, { status: 500 });
   }
 }
